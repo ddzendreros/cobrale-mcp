@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Libreta · el fiado que se cobra solo</title>
+  <meta name="theme-color" content="#f6f1e7" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📒</text></svg>" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo">📒</span>
+      <div>
+        <h1>Libreta</h1>
+        <p class="store" id="storeName">La Tiendita</p>
+      </div>
+    </div>
+    <div class="chips" id="modeChips"></div>
+  </header>
+
+  <main>
+    <section class="stats">
+      <div class="stat big">
+        <span class="label">Me deben</span>
+        <span class="value" id="stPorCobrar">$0.00</span>
+        <span class="sub" id="stClientes">0 clientes</span>
+      </div>
+      <div class="stat">
+        <span class="label">Cobrado hoy con CoDi</span>
+        <span class="value green" id="stCodi">$0.00</span>
+        <span class="sub">sin comisión · en segundos</span>
+      </div>
+      <div class="stat">
+        <span class="label">Efectivo hoy</span>
+        <span class="value" id="stCash">$0.00</span>
+        <span class="sub">abonos anotados</span>
+      </div>
+    </section>
+
+    <section class="command">
+      <form id="cmdForm" autocomplete="off">
+        <button type="button" class="icon-btn" id="micBtn" title="Hablar">🎙️</button>
+        <input id="cmdInput" placeholder="Apúntale 85 a Doña Mary de 2 cocas y un pan…" />
+        <label class="icon-btn" title="Foto de tu libreta de papel">
+          📷<input type="file" id="photoInput" accept="image/*" capture="environment" hidden />
+        </label>
+        <button type="submit" class="send" id="sendBtn">Anotar</button>
+      </form>
+      <div class="examples" id="examples"></div>
+      <div class="reply" id="reply" hidden></div>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="libreta">Libreta</button>
+      <button class="tab" data-tab="mostrador">Mostrador</button>
+      <button class="tab" data-tab="actividad">Actividad</button>
+    </nav>
+
+    <section class="panel" id="panel-libreta">
+      <div class="grid" id="customers"></div>
+      <div class="empty" id="empty" hidden>
+        <div class="empty-icon">📒</div>
+        <h2>Tu libreta está vacía</h2>
+        <p>Toma foto a tu libreta de papel, dicta un fiado o carga un ejemplo.</p>
+        <div class="row">
+          <label class="btn primary">📷 Foto de mi libreta<input type="file" id="photoInput2" accept="image/*" capture="environment" hidden /></label>
+          <button class="btn" id="seedBtn">Cargar ejemplo</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-mostrador" hidden>
+      <div class="pos">
+        <p class="pos-title">Cobro rápido en mostrador</p>
+        <div class="pos-display" id="posDisplay">$0</div>
+        <input class="pos-concept" id="posConcept" placeholder="¿Qué se lleva? (opcional)" maxlength="30" />
+        <div class="keypad" id="keypad"></div>
+        <button class="btn primary wide" id="posCharge">Generar QR CoDi</button>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-actividad" hidden>
+      <ul class="feed" id="feed"></ul>
+      <div class="row end"><button class="btn ghost small" id="resetBtn">Borrar todo (demo)</button></div>
+    </section>
+  </main>
+
+  <!-- Modal genérico -->
+  <div class="modal" id="modal" hidden>
+    <div class="sheet" role="dialog" aria-modal="true">
+      <button class="close" id="modalClose" aria-label="Cerrar">✕</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+  <canvas id="confetti"></canvas>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

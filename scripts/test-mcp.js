@@ -1,0 +1,26 @@
+// Prueba de punta a punta del MCP (modo demo): `npm run test:mcp` [url]
+import "dotenv/config";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+const client = new Client({ name: "test", version: "1" });
+await client.connect(new StreamableHTTPClientTransport(new URL(process.argv[2] || "http://localhost:3000/mcp"), process.env.PEY_MCP_TOKEN ? { requestInit: { headers: { Authorization: `Bearer ${process.env.PEY_MCP_TOKEN}` } } } : undefined));
+const tools = await client.listTools();
+console.log("TOOLS:", tools.tools.map((t) => t.name).join(", "));
+const r = await client.callTool({ name: "cobrar_con_qr", arguments: { monto: 149.5, concepto: "Factura 123", referencia: "FAC-123" } });
+console.log("QR:", r.content[0].text.split("\n")[0], "| image:", r.content[1]?.type, r.content[1]?.data?.length);
+const id = r.structuredContent.cobro_id;
+setTimeout(() => fetch(`http://localhost:3000/api/charges/${id}/simulate`, { method: "POST" }), 1500);
+const t0 = Date.now();
+const w = await client.callTool({ name: "esperar_pago", arguments: { cobro_id: id, segundos: 10 } });
+console.log("WAIT:", w.content[0].text.split("\n")[0], `(${Date.now() - t0}ms)`);
+const p = await client.callTool({ name: "cobrar_a_celular", arguments: { monto: 20, celular: "55 1234 5678" } });
+console.log("PUSH:", p.content[0].text.split("\n")[0]);
+const bad = await client.callTool({ name: "cobrar_a_celular", arguments: { monto: 20, celular: "123" } });
+console.log("BAD:", bad.isError, bad.content[0].text);
+const l = await client.callTool({ name: "crear_link_de_pago", arguments: { monto: 99 } });
+console.log("LINK:", l.content[0].text.split("\n")[0]);
+const w2 = await client.callTool({ name: "esperar_pago", arguments: { cobro_id: p.structuredContent.cobro_id, segundos: 1 } });
+console.log("WAIT2:", w2.content[0].text.split("\n")[0]);
+const pr = await client.callTool({ name: "pagos_recibidos", arguments: {} });
+console.log("PAGOS:", pr.content[0].text.split("\n")[0]);
+await client.close();
