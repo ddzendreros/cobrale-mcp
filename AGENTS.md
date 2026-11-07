@@ -7,6 +7,34 @@ Contexto para Codex (y para el equipo). Léelo antes de tocar código.
 
 Hackathon DevDay Exchange Community, CDMX. Entrega: domingo 8 nov, 13:00.
 
+## Plan hasta la entrega
+La base ya funciona en modo demo; no se reescribe. Lo único que puede tumbar el demo es el **pago real con pey**, así que eso va primero.
+
+| Quién | Rama | Qué le toca |
+|---|---|---|
+| **Persona 1 (ZR)** · MCP + núcleo + repo | `feat/mcp` | Único que hace merge a `main`. Conectar Codex al MCP, `cancelar_cobro`, resource `pey://pagos/hoy`, arreglar `scripts/test-mcp.js` (tiene fijo el puerto 3000). Con la key real: `cobrar_a_celular` al cel de P3 → `esperar_pago` responde pagado. |
+| **Persona 2** · Libreta | `feat/libreta` | Pestaña "Agentes" en vivo + bloque "Conecta tu agente". Probar foto de una libreta de fiado escrita a mano de verdad y ajustar el prompt. Pulir vista en celular. Preparar datos del demo. |
+| **Persona 3** · infra + B2B + entrega | `feat/infra` | **Antes de las 16:00 del sábado:** cuenta en portal.mipey.mx, API key, cuenta de pago, túnel (cloudflared) y webhook a `PUBLIC_URL/webhooks/pey`. Después: deploy, agente de empresa conversacional, landing `docs/index.html`, video de respaldo y envío. |
+
+Si son 2 personas: P1 absorbe infra + entrega y P2 se queda con Libreta.
+
+### Hitos
+| Cuándo | Qué tiene que estar |
+|---|---|
+| Sáb 15:00 | Repo arriba, los 3 con `npm start` corriendo. P3 con key de pey. |
+| Sáb 15:45 | Primer pago real de $0.01 por el túnel, de punta a punta (aprovechar a los mentores si falla). |
+| Sáb 22:00 | Merge de las 3 ramas + deploy con URL fija. |
+| Dom 10:00 | Código congelado. Ensayo del pitch (`PITCH.md`) y video. |
+| Dom 11:30 | Envío hecho (cierre a las 13:00). |
+
+### Deploy
+Render o Railway (proceso Node normal). **No serverless/Vercel**: el server guarda en `data/db.json`, mantiene abiertas las esperas de `esperar_pago` y el SSE de `/api/events`. Variables: las de `.env.example` con `PUBLIC_URL` = URL del deploy, y volver a apuntar el webhook de pey a ella.
+
+### Cómo usamos Codex
+- Abrir Codex en la **raíz del repo** (lee este archivo solo) y en el prompt decir en qué carpeta puede trabajar.
+- Cada PR lleva en la descripción el prompt de Codex que se usó y qué se probó.
+- Antes de pedir merge: `npm start` sin errores y `npm run test:mcp` pasa.
+
 ## Arquitectura (un solo proceso)
 pey permite **un webhook por API key**, por eso un solo servidor recibe los pagos y los reparte:
 
@@ -66,16 +94,18 @@ Antes de cada PR: `npm start` levanta sin errores y `npm run test:mcp` pasa (con
 - ESM (`import`), Node ≥ 18, sin TypeScript, sin build. UI en español de México.
 - **Nunca** subir `.env`, keys ni `data/`. Las keys se comparten por DM.
 - No agregar dependencias sin avisar en el chat del equipo (todos hacen `npm install` de nuevo).
-- Cada quien trabaja en SU carpeta y SU rama: `feat/mcp`, `feat/libreta`, `feat/infra`. PRs chicos a `main`, merge cada ~45 min.
+- Cada quien trabaja en SU carpeta y SU rama: `feat/mcp`, `feat/libreta`, `feat/infra`. PRs chicos a `main`; solo Persona 1 hace merge.
 - Si necesitas algo del núcleo que no está en el contrato, agrégalo como función NUEVA; no cambies firmas existentes.
 - Todo debe funcionar en modo demo (sin keys): el demo no se puede caer por el wifi.
 
 ## Prompts iniciales para Codex
 **Persona 1 (MCP + núcleo):**
-> Lee AGENTS.md y docs/codex.md. Conecta este MCP a Codex (`codex mcp add pey --url http://localhost:3000/mcp`) y verifica las 6 herramientas. Luego mejora src/mcp/server.js: agrega `cancelar_cobro` (marca superseded) y un resource `pey://pagos/hoy`. Corre `npm run test:mcp` al final.
+> Lee AGENTS.md y docs/codex.md. Trabaja solo en src/mcp, src/pey y scripts/. Primero arregla scripts/test-mcp.js: el POST de simulate usa `http://localhost:3000` fijo; debe salir del mismo origen que la URL del MCP (argv[2]). Luego en src/mcp/server.js agrega `cancelar_cobro` (usa `supersede`, solo si está pending) y un resource `pey://pagos/hoy`; documenta ambos en docs/codex.md. No cambies firmas del contrato. Corre `npm run test:mcp` al final.
 
 **Persona 2 (Libreta):**
-> Lee AGENTS.md. Trabaja solo en src/libreta y public/. Agrega en la UI una pestaña "Agentes" que muestre en vivo los cobros con `source: 'mcp'` (llegan por el SSE de /api/events) y un bloque "Conecta tu agente" con la URL de /mcp copiable. No cambies src/pey.
+> Lee AGENTS.md. Trabaja solo en src/libreta y public/. Agrega en la UI una pestaña "Agentes" que muestre en vivo los cobros con `source: 'mcp'` (llegan por el SSE de /api/events) y un bloque "Conecta tu agente" con la URL de /mcp copiable. Revisa que todo se vea bien a 375px de ancho. No cambies src/pey.
+>
+> Segundo prompt, con la foto real: "Esta es una foto de una libreta de fiado escrita a mano. Mejora el prompt de lectura en src/libreta/ai.js para que ignore lo tachado, junte abonos del mismo cliente y no invente montos ilegibles."
 
 **Persona 3 (infra + B2B + entrega):**
-> Lee AGENTS.md. Haz que examples/agente-empresa/agente.js sea un chat en terminal (readline) que mantenga contexto con `previous_response_id`. Luego crea docs/index.html: landing de una página "CoDi para agentes" con el snippet de conexión y las 6 herramientas.
+> Lee AGENTS.md. Trabaja solo en examples/, docs/ y archivos de deploy. Agrega un render.yaml para desplegar este servidor Node (`npm install` / `npm start`, health check en `/`). Haz que examples/agente-empresa/agente.js sea un chat en terminal (readline) que mantenga contexto con `previous_response_id`. Luego crea docs/index.html: landing de una página "CoDi para agentes" con el snippet de conexión y las 6 herramientas.
