@@ -4,7 +4,7 @@
 //
 //   npm run agente -- "Cóbrale $0.01 al 5512345678 por la factura FAC-001 y avísame cuando pague"
 //
-// TODO (Persona 3): hacerlo conversacional (loop en terminal o bot de WhatsApp/Telegram).
+// TODO (Alan): hacerlo conversacional (loop en terminal o bot de WhatsApp/Telegram).
 import "dotenv/config";
 import OpenAI from "openai";
 import { pickModel } from "../../src/libreta/ai.js";

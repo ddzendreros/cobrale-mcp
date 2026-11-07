@@ -12,16 +12,14 @@ La base ya funciona en modo demo; no se reescribe. Lo único que puede tumbar el
 
 | Quién | Rama | Qué le toca |
 |---|---|---|
-| **Persona 1 (ZR)** · MCP + núcleo + repo | `feat/mcp` | Único que hace merge a `main`. Conectar Codex al MCP, `cancelar_cobro`, resource `pey://pagos/hoy`, arreglar `scripts/test-mcp.js` (tiene fijo el puerto 3000). Con la key real: `cobrar_a_celular` al cel de P3 → `esperar_pago` responde pagado. |
-| **Persona 2** · Libreta | `feat/libreta` | Pestaña "Agentes" en vivo + bloque "Conecta tu agente". Probar foto de una libreta de fiado escrita a mano de verdad y ajustar el prompt. Pulir vista en celular. Preparar datos del demo. |
-| **Persona 3** · infra + B2B + entrega | `feat/infra` | **Antes de las 16:00 del sábado:** cuenta en portal.mipey.mx, API key, cuenta de pago, túnel (cloudflared) y webhook a `PUBLIC_URL/webhooks/pey`. Después: deploy, agente de empresa conversacional, landing `docs/index.html`, video de respaldo y envío. |
-
-Si son 2 personas: P1 absorbe infra + entrega y P2 se queda con Libreta.
+| **Diego** · MCP + núcleo + repo | `feat/mcp` | Único que hace merge a `main`. Conectar Codex al MCP, `cancelar_cobro`, resource `pey://pagos/hoy`, arreglar `scripts/test-mcp.js` (tiene fijo el puerto 3000). Con la key real: `cobrar_a_celular` al cel de Alan → `esperar_pago` responde pagado. |
+| **Aldo** · Libreta | `feat/libreta` | Pestaña "Agentes" en vivo + bloque "Conecta tu agente". Probar foto de una libreta de fiado escrita a mano de verdad y ajustar el prompt. Pulir vista en celular. Preparar datos del demo. |
+| **Alan** · infra + B2B + entrega | `feat/infra` | **Antes de las 16:00 del sábado:** cuenta en portal.mipey.mx, API key, cuenta de pago, túnel (cloudflared) y webhook a `PUBLIC_URL/webhooks/pey`. Después: deploy, agente de empresa conversacional, landing `docs/index.html`, video de respaldo y envío. |
 
 ### Hitos
 | Cuándo | Qué tiene que estar |
 |---|---|
-| Sáb 15:00 | Repo arriba, los 3 con `npm start` corriendo. P3 con key de pey. |
+| Sáb 15:00 | Repo arriba, los 3 con `npm start` corriendo. Alan con key de pey. |
 | Sáb 15:45 | Primer pago real de $0.01 por el túnel, de punta a punta (aprovechar a los mentores si falla). |
 | Sáb 22:00 | Merge de las 3 ramas + deploy con URL fija. |
 | Dom 10:00 | Código congelado. Ensayo del pitch (`PITCH.md`) y video. |
@@ -41,13 +39,13 @@ pey permite **un webhook por API key**, por eso un solo servidor recibe los pago
 ```
 src/server.js          monta todo (webhook, /mcp, Libreta, páginas). NO tocar sin avisar al equipo.
 src/store.js           persistencia en data/db.json (compartido)
-src/pey/client.js      llamadas HTTP a api.pey.mx (+ simulador si no hay PEY_API_KEY)     [Persona 1]
-src/pey/payments.js    NÚCLEO: cobros, webhooks, conciliación, eventos                     [Persona 1]
-src/mcp/server.js      herramientas MCP en /mcp                                            [Persona 1]
-src/libreta/*          rutas /api/*, ledger del fiado, IA (comandos, foto, recordatorios)  [Persona 2]
-public/*               UI de Libreta (vanilla JS, sin build, sin CDNs)                     [Persona 2]
-examples/agente-empresa/  demo B2B con Responses API + MCP remoto                          [Persona 3]
-docs/                  cómo conectar agentes, landing                                     [Persona 3]
+src/pey/client.js      llamadas HTTP a api.pey.mx (+ simulador si no hay PEY_API_KEY)     [Diego]
+src/pey/payments.js    NÚCLEO: cobros, webhooks, conciliación, eventos                     [Diego]
+src/mcp/server.js      herramientas MCP en /mcp                                            [Diego]
+src/libreta/*          rutas /api/*, ledger del fiado, IA (comandos, foto, recordatorios)  [Aldo]
+public/*               UI de Libreta (vanilla JS, sin build, sin CDNs)                     [Aldo]
+examples/agente-empresa/  demo B2B con Responses API + MCP remoto                          [Alan]
+docs/                  cómo conectar agentes, landing                                     [Alan]
 scripts/               check (diagnóstico real), test-mcp (e2e demo)
 ```
 
@@ -94,18 +92,18 @@ Antes de cada PR: `npm start` levanta sin errores y `npm run test:mcp` pasa (con
 - ESM (`import`), Node ≥ 18, sin TypeScript, sin build. UI en español de México.
 - **Nunca** subir `.env`, keys ni `data/`. Las keys se comparten por DM.
 - No agregar dependencias sin avisar en el chat del equipo (todos hacen `npm install` de nuevo).
-- Cada quien trabaja en SU carpeta y SU rama: `feat/mcp`, `feat/libreta`, `feat/infra`. PRs chicos a `main`; solo Persona 1 hace merge.
+- Cada quien trabaja en SU carpeta y SU rama: `feat/mcp`, `feat/libreta`, `feat/infra`. PRs chicos a `main`; solo Diego hace merge.
 - Si necesitas algo del núcleo que no está en el contrato, agrégalo como función NUEVA; no cambies firmas existentes.
 - Todo debe funcionar en modo demo (sin keys): el demo no se puede caer por el wifi.
 
 ## Prompts iniciales para Codex
-**Persona 1 (MCP + núcleo):**
+**Diego (MCP + núcleo):**
 > Lee AGENTS.md y docs/codex.md. Trabaja solo en src/mcp, src/pey y scripts/. Primero arregla scripts/test-mcp.js: el POST de simulate usa `http://localhost:3000` fijo; debe salir del mismo origen que la URL del MCP (argv[2]). Luego en src/mcp/server.js agrega `cancelar_cobro` (usa `supersede`, solo si está pending) y un resource `pey://pagos/hoy`; documenta ambos en docs/codex.md. No cambies firmas del contrato. Corre `npm run test:mcp` al final.
 
-**Persona 2 (Libreta):**
+**Aldo (Libreta):**
 > Lee AGENTS.md. Trabaja solo en src/libreta y public/. Agrega en la UI una pestaña "Agentes" que muestre en vivo los cobros con `source: 'mcp'` (llegan por el SSE de /api/events) y un bloque "Conecta tu agente" con la URL de /mcp copiable. Revisa que todo se vea bien a 375px de ancho. No cambies src/pey.
 >
 > Segundo prompt, con la foto real: "Esta es una foto de una libreta de fiado escrita a mano. Mejora el prompt de lectura en src/libreta/ai.js para que ignore lo tachado, junte abonos del mismo cliente y no invente montos ilegibles."
 
-**Persona 3 (infra + B2B + entrega):**
+**Alan (infra + B2B + entrega):**
 > Lee AGENTS.md. Trabaja solo en examples/, docs/ y archivos de deploy. Agrega un render.yaml para desplegar este servidor Node (`npm install` / `npm start`, health check en `/`). Haz que examples/agente-empresa/agente.js sea un chat en terminal (readline) que mantenga contexto con `previous_response_id`. Luego crea docs/index.html: landing de una página "CoDi para agentes" con el snippet de conexión y las 6 herramientas.
