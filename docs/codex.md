@@ -42,7 +42,7 @@ Ver `examples/agente-empresa/agente.js`. Necesita `PUBLIC_URL` https:
 tools: [{ type: "mcp", server_label: "cobrale", server_url: `${PUBLIC_URL}/mcp`, require_approval: "never" }]
 ```
 
-## Claude Desktop / otros clientes MCP
+## Otros clientes MCP
 
 Cualquier cliente con Streamable HTTP apunta a `/mcp`. Para clientes solo-stdio: `npx -y mcp-remote http://localhost:3000/mcp`.
 

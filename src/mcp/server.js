@@ -1,4 +1,4 @@
-// Cóbrale MCP: le da a cualquier agente (Codex, ChatGPT, Claude, el agente de tu empresa) la capacidad de cobrar con CoDi.
+// Cóbrale MCP: le da a cualquier agente (Codex, ChatGPT, el agente de tu empresa) la capacidad de cobrar con CoDi.
 // Transporte: Streamable HTTP en /mcp (stateless). Comparte el núcleo de cobros con Libreta,
 // así que los webhooks de pey que recibe este mismo servidor despiertan a `esperar_pago`.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
