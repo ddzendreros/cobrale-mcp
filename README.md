@@ -152,7 +152,26 @@ Sin `PEY_API_KEY` ni `OPENAI_API_KEY` todo funciona en **modo demo**: CoDi simul
 
 `PEY_TEST_AMOUNT=0.01` hace que cada cobro real sea de un centavo, para probar sin gastar. Si el webhook no llega, la app concilia sola cada 12 s con `GET /transaction/api-key` mientras haya cobros pendientes.
 
-**Deploy con URL fija**: cualquier host de Node con proceso persistente (Render, Railway, Fly). Build `npm install`, start `npm start`, las variables del `.env` con `PUBLIC_URL` igual a la URL del deploy, y actualizar el webhook en el portal de pey.
+**Deploy en Railway** (proceso Node persistente; `railway.json` ya trae el arranque y el health check en `/api/state`):
+
+1. *New Project → Deploy from GitHub repo*, y luego *Settings → Networking → Generate Domain*.
+2. Deja **una sola réplica**: los eventos y las esperas de `esperar_pago` viven en memoria.
+3. Carga las variables y apunta el webhook de pey a `PUBLIC_URL/webhooks/pey`.
+4. Opcional: un volumen montado en `/data` con `DATA_DIR=/data`, para que un redeploy no borre la libreta. Cada push a `main` redeploya.
+
+| Variable | Valor |
+|---|---|
+| `PEY_API_KEY`, `PEY_WEBHOOK_SECRET` | key y secreto `whsec_…` del portal de pey |
+| `PUBLIC_URL` | `https://<tu-app>.up.railway.app` |
+| `PEY_TEST_AMOUNT` | `0.01` para probar con un centavo |
+| `OPENAI_API_KEY`, `OPENAI_MODEL` | key y modelo fijo con visión |
+| `TZ` | `America/Mexico_City` ("hoy" en hora de CDMX) |
+| `PEY_MCP_TOKEN` | token para `/mcp` |
+| `ADMIN_TOKEN` | deja la Libreta pública en solo lectura; se abre una vez con `/?admin=<token>` |
+| `ALLOW_SIMULATE` | `1` para dejar "Simular pago" como plan B |
+| `PEY_DEBUG` | `1` registra los webhooks crudos en los logs |
+| `DATA_DIR` | `/data` si usas volumen |
+| `STORE_NAME`, `STORE_OWNER` | nombre de la tienda y del tendero |
 
 </details>
 
