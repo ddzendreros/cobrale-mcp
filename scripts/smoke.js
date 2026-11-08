@@ -123,6 +123,7 @@ async function runChecks(state) {
     DATA_DIR: state.tempDir,
     PEY_API_KEY: "",
     OPENAI_API_KEY: "",
+    ANTHROPIC_API_KEY: "",
     PUBLIC_URL: "",
     PEY_WEBHOOK_SECRET: state.secret,
     PEY_MCP_TOKEN: "",
