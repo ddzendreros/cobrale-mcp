@@ -1,10 +1,14 @@
-// Capa de IA (OpenAI). Si no hay key o la llamada falla, cae a un parser local para que el demo nunca se caiga.
+// Capa de IA: Claude (ANTHROPIC_API_KEY) u OpenAI (OPENAI_API_KEY). Si están las dos, usa Claude.
+// Si no hay key o la llamada falla, cae a un parser local para que el demo nunca se caiga.
 import OpenAI from "openai";
 import { localParseCommand, localReminder, demoNotebook } from "./fallback.js";
 
-const KEY = process.env.OPENAI_API_KEY || "";
+const CLAUDE_KEY = process.env.ANTHROPIC_API_KEY || "";
+const KEY = CLAUDE_KEY ? "" : process.env.OPENAI_API_KEY || "";
 const client = KEY ? new OpenAI({ apiKey: KEY, timeout: 45_000, maxRetries: 1 }) : null;
-export const aiLive = () => Boolean(client);
+const LIVE = Boolean(CLAUDE_KEY || client);
+export const aiLive = () => LIVE;
+export const aiProvider = () => (CLAUDE_KEY ? "claude" : client ? "openai" : null);
 
 // Elegimos el mejor modelo disponible para tu key al arrancar (los nombres cambian seguido).
 const PREFERENCE = [
@@ -20,10 +24,14 @@ const PREFERENCE = [
   "gpt-4.1",
   "gpt-4o",
 ].filter(Boolean);
-let MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
+let MODEL = CLAUDE_KEY ? process.env.ANTHROPIC_MODEL || "claude-opus-5-5" : process.env.OPENAI_MODEL || "gpt-5.5";
 
 export async function pickModel() {
-  if (!client) return null;
+  if (!LIVE) return null;
+  if (CLAUDE_KEY) {
+    console.log(`[ai] usando Claude ${MODEL}`);
+    return MODEL;
+  }
   try {
     const ids = new Set();
     for await (const m of client.models.list()) ids.add(m.id);
@@ -34,9 +42,71 @@ export async function pickModel() {
   console.log(`[ai] usando modelo ${MODEL}`);
   return MODEL;
 }
-export const currentModel = () => (client ? MODEL : null);
+export const currentModel = () => (LIVE ? MODEL : null);
 
-async function structured({ system, user, schemaName, schema }) {
+// ---------- Claude (Messages API por fetch: el proyecto no agrega dependencias) ----------
+// La API de Claude acepta anyOf; convertimos los `type: ["string","null"]` del esquema por si acaso.
+function claudeSchema(s) {
+  if (Array.isArray(s)) return s.map(claudeSchema);
+  if (!s || typeof s !== "object") return s;
+  const out = {};
+  for (const [k, v] of Object.entries(s)) out[k] = k === "enum" ? v : claudeSchema(v);
+  if (Array.isArray(out.type)) {
+    const { type, description, ...rest } = out;
+    return { ...(description ? { description } : {}), anyOf: type.map((t) => ({ ...rest, type: t })) };
+  }
+  return out;
+}
+
+// Contenido estilo OpenAI ({type:"text"} / {type:"image_url"}) → bloques de Claude (imagen primero).
+function claudeContent(user) {
+  if (typeof user === "string") return user;
+  const images = [];
+  const texts = [];
+  for (const part of user) {
+    if (part.type === "image_url") {
+      const m = /^data:([^;]+);base64,(.*)$/s.exec(part.image_url.url);
+      if (!m) throw new Error("imagen no es data URL base64");
+      images.push({ type: "image", source: { type: "base64", media_type: m[1], data: m[2] } });
+    } else texts.push({ type: "text", text: part.text });
+  }
+  return [...images, ...texts];
+}
+
+async function claudeStructured({ system, user, schema, effort }) {
+  const body = {
+    model: MODEL,
+    max_tokens: 16000,
+    system,
+    messages: [{ role: "user", content: claudeContent(user) }],
+    output_config: { effort, format: { type: "json_schema", schema: claudeSchema(schema) } },
+    fallbacks: "default",
+  };
+  let res;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": CLAUDE_KEY,
+        "anthropic-version": "2026-10-21",
+        "anthropic-beta": "server-side-fallback-2026-07-01",
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(45_000),
+    });
+    if (res.status !== 429 && res.status < 500) break;
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`Claude ${res.status}: ${data?.error?.message || res.statusText}`);
+  if (data.stop_reason === "refusal") throw new Error("refusal: " + (data.stop_details?.explanation || "Claude declinó"));
+  if (data.stop_reason === "max_tokens") throw new Error("respuesta cortada (max_tokens)");
+  const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+  return JSON.parse(text);
+}
+
+async function structured({ system, user, schemaName, schema, effort = "low" }) {
+  if (CLAUDE_KEY) return claudeStructured({ system, user, schema, effort });
   const res = await client.chat.completions.create({
     model: MODEL,
     messages: [
@@ -77,7 +147,7 @@ const ACTION_SCHEMA = {
 };
 
 export async function parseCommand(text, knownCustomers = []) {
-  if (!client) return { ...localParseCommand(text, knownCustomers), ai: false };
+  if (!LIVE) return { ...localParseCommand(text, knownCustomers), ai: false };
   try {
     const out = await structured({
       schemaName: "libreta_actions",
@@ -125,10 +195,11 @@ const NOTEBOOK_SCHEMA = {
 };
 
 export async function parseNotebookPhoto(dataUrl, knownCustomers = []) {
-  if (!client) return { ...demoNotebook(), ai: false };
+  if (!LIVE) return { ...demoNotebook(), ai: false };
   try {
     const out = await structured({
       schemaName: "libreta_foto",
+      effort: "medium",
       schema: NOTEBOOK_SCHEMA,
       system: `Lees fotos de libretas de fiado escritas a mano en tienditas mexicanas. Extrae cada deuda PENDIENTE.
 - Ignora líneas tachadas, palomeadas o marcadas como "pagado"/"pagó".
@@ -150,7 +221,7 @@ Clientes ya registrados: ${knownCustomers.join(", ") || "(ninguno)"}. Usa ese no
 
 // ---------- Recordatorio amable ----------
 export async function writeReminder({ store, owner, customer, balance, items, payUrl, pushSent }) {
-  if (!client) return localReminder({ store, owner, customer, balance, payUrl, pushSent });
+  if (!LIVE) return localReminder({ store, owner, customer, balance, payUrl, pushSent });
   try {
     const out = await structured({
       schemaName: "recordatorio",

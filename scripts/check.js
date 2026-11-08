@@ -1,7 +1,7 @@
 // Diagnóstico rápido: `npm run check`. Corre esto ANTES del demo.
 import "dotenv/config";
 import { createQr, peyLive } from "../src/pey/client.js";
-import { pickModel, parseCommand, aiLive } from "../src/libreta/ai.js";
+import { pickModel, parseCommand, aiLive, aiProvider } from "../src/libreta/ai.js";
 
 const ok = (m) => console.log("  ✅ " + m);
 const bad = (m) => console.log("  ❌ " + m);
@@ -9,13 +9,13 @@ const warn = (m) => console.log("  ⚠️  " + m);
 
 console.log("\n📒 Diagnóstico de Libreta\n");
 
-console.log("OpenAI");
-if (!aiLive()) warn("Sin OPENAI_API_KEY: se usará el parser local (funciona, pero sin foto ni IA).");
+console.log("IA (Claude u OpenAI)");
+if (!aiLive()) warn("Sin ANTHROPIC_API_KEY ni OPENAI_API_KEY: se usará el parser local (funciona, pero sin foto ni IA).");
 else {
   const model = await pickModel();
   try {
     const r = await parseCommand("Apúntale 85 a Doña Mary de 2 cocas y un pan", []);
-    r.ai ? ok(`Modelo ${model} respondió: ${JSON.stringify(r.actions[0])}`) : bad(`La IA falló (${r.aiError}). Prueba otro OPENAI_MODEL.`);
+    r.ai ? ok(`${aiProvider()} · modelo ${model} respondió: ${JSON.stringify(r.actions[0])}`) : bad(`La IA falló (${r.aiError}). Revisa la key o prueba otro modelo (ANTHROPIC_MODEL / OPENAI_MODEL).`);
   } catch (e) { bad(e.message); }
 }
 

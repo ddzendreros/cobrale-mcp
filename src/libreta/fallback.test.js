@@ -71,6 +71,7 @@ test("sin clientes conocidos no confunde el verbo con el nombre", () => {
 
 test("parseCommand pasa los clientes registrados al parser local", async () => {
   process.env.OPENAI_API_KEY = "";
+  process.env.ANTHROPIC_API_KEY = "";
   const { parseCommand } = await import("./ai.js");
   const parsed = await parseCommand("cobrale a doña mary", ["Doña Mary"]);
   assert.equal(parsed.ai, false);
