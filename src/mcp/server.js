@@ -1,4 +1,4 @@
-// pey MCP: le da a cualquier agente (Codex, ChatGPT, Claude, el agente de tu empresa) la capacidad de cobrar con CoDi.
+// Cóbrale MCP: le da a cualquier agente (Codex, ChatGPT, Claude, el agente de tu empresa) la capacidad de cobrar con CoDi.
 // Transporte: Streamable HTTP en /mcp (stateless). Comparte el núcleo de cobros con Libreta,
 // así que los webhooks de pey que recibe este mismo servidor despiertan a `esperar_pago`.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -26,7 +26,7 @@ const conceptSchema = z.string().max(40).optional().describe("Concepto que verá
 const refSchema = z.string().max(80).optional().describe("Tu referencia interna: número de pedido, factura, cliente…");
 
 export function buildServer() {
-  const server = new McpServer({ name: "pey-codi", version: "1.0.0" }, {
+  const server = new McpServer({ name: "cobrale", version: "1.0.0" }, {
     instructions:
       "Herramientas para cobrar en México con CoDi (Banco de México) vía pey. Flujo típico: crea el cobro (cobrar_con_qr si la persona está presente, cobrar_a_celular si conoces su celular, crear_link_de_pago para mandarlo por chat/correo) y luego llama esperar_pago con el cobro_id para enterarte cuando se pague. Los pagos son instantáneos y sin comisión. Nunca inventes montos: confírmalos con el usuario.",
   });

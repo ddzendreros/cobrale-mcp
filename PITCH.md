@@ -1,4 +1,4 @@
-# Pitch AlanCobra (3 min, 3 personas)
+# Pitch Cóbrale (3 min, 3 personas)
 
 **Frase:** *"pey le dio una API a CoDi. Nosotros le damos manos a los agentes."*
 
@@ -12,7 +12,7 @@
 "CoDi existe desde 2019: es gratis, instantáneo y de Banxico. ¿Por qué seguimos pagando en efectivo? Porque integrarlo es chamba de programador, y ni la tiendita ni la mayoría de las empresas van a integrar una API. Pero a un agente sí le hablan."
 
 **0:20 · Qué es (Diego, 15 s)**
-"AlanCobra es un servidor MCP sobre pey: cualquier agente de IA puede cobrar con CoDi. Para probarlo en el mundo real, construimos la primera app encima, para el usuario más difícil: la tiendita."
+"Cóbrale es un servidor MCP sobre pey: cualquier agente de IA puede cobrar con CoDi. Para probarlo en el mundo real, construimos la primera app encima, para el usuario más difícil: la tiendita."
 
 **0:35 · Libreta (Aldo, 75 s)**
 1. 📷 Foto a una libreta de fiado escrita a mano → la IA la pasa a limpio (ignora lo tachado).
@@ -27,7 +27,7 @@ Codex llama `cobrar_a_celular` → a Alan le llega la solicitud en su banco → 
 "Mismo servidor, otro agente. Un webhook de pey, todos los agentes enterados."
 
 **2:40 · Cierre (Diego, 20 s)**
-"Cualquier agente en México ya puede cobrar sin efectivo y sin comisión: la tiendita por voz y las empresas en 5 líneas. Open source, sobre pey y CoDi. Esto es AlanCobra."
+"Cualquier agente en México ya puede cobrar sin efectivo y sin comisión: la tiendita por voz y las empresas en 5 líneas. Open source, sobre pey y CoDi. Esto es Cóbrale."
 
 ## Checklist antes de subir
 - [ ] `npm run check` con todo en ✅ y `PEY_TEST_AMOUNT=0.01`.
@@ -45,4 +45,4 @@ Codex llama `cobrar_a_celular` → a Alan le llega la solicitud en su banco → 
 - **¿Qué sigue?** Bot de WhatsApp para el tendero, `cancelar_cobro`, multi-negocio (una key de pey por comercio), historial de pagos como evidencia para microcrédito.
 
 ## Texto para el envío
-**AlanCobra — CoDi para agentes.** Servidor MCP open source sobre pey: cualquier agente de IA (Codex, ChatGPT o el de tu empresa) puede cobrar con CoDi por QR, solicitud al celular o link, y *esperar* el pago gracias a que convertimos los webhooks de pey en una herramienta. Lo probamos con Libreta: la libreta del fiado de la tiendita se digitaliza con una foto o por voz (OpenAI) y cada cuenta se cobra con CoDi y se marca pagada en tiempo real. Cero comisiones, cero efectivo.
+**Cóbrale — pagos CoDi para agentes.** Servidor MCP open source sobre pey: cualquier agente de IA (Codex, ChatGPT o el de tu empresa) puede cobrar con CoDi por QR, solicitud al celular o link, y *esperar* el pago gracias a que convertimos los webhooks de pey en una herramienta. Lo probamos con Libreta: la libreta del fiado de la tiendita se digitaliza con una foto o por voz (OpenAI) y cada cuenta se cobra con CoDi y se marca pagada en tiempo real. Cero comisiones, cero efectivo.

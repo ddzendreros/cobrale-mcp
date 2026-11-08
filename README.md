@@ -1,22 +1,22 @@
-# 💸 AlanCobra — CoDi para agentes
+# 💸 Cóbrale — pagos CoDi para agentes
 
-**pey le dio una API a CoDi. AlanCobra le da manos a los agentes.**
+**pey le dio una API a CoDi. Cóbrale le da manos a los agentes.**
 
 Un servidor **MCP sobre [pey](https://docs.pey.mx)** para que cualquier agente de IA (Codex, ChatGPT, Claude o el agente propio de una empresa) cobre en México con **CoDi**, la red de Banxico gratuita e instantánea: QR, solicitud al celular, link de pago y, lo más importante, **`esperar_pago`**, que convierte los webhooks de pey en algo que un agente sí puede usar.
 
 Y como prueba en el mundo real, la primera app construida encima: **📒 Libreta**, la libreta del fiado de la tiendita, que se cobra sola.
 
 ```
-pey (CoDi)  →  AlanCobra (un servidor: webhook + núcleo de cobros)
+pey (CoDi)  →  Cóbrale (un servidor: webhook + núcleo de cobros)
                    ├── /mcp      → Codex · ChatGPT · agente de cualquier empresa
                    └── /         → Libreta (tiendita: foto/voz → cobro → pagado)
 ```
 
-## pey MCP en 30 segundos
+## Cóbrale MCP en 30 segundos
 
 ```bash
 npm install && npm start
-codex mcp add pey --url http://localhost:3000/mcp
+codex mcp add cobrale --url http://localhost:3000/mcp
 ```
 > "Cóbrale $0.01 al 55XXXXXXXX por la factura FAC-001 y avísame cuando pague."
 

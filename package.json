@@ -1,7 +1,7 @@
 {
-  "name": "alancobra",
+  "name": "cobrale-mcp",
   "version": "1.0.0",
-  "description": "CoDi para agentes: MCP sobre pey + Libreta, el fiado que se cobra solo",
+  "description": "Cóbrale: pagos CoDi para agentes (MCP sobre pey) + Libreta, el fiado que se cobra solo",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

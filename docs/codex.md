@@ -1,4 +1,4 @@
-# Conectar pey MCP a Codex (y a cualquier agente)
+# Conectar Cóbrale MCP a Codex (y a cualquier agente)
 
 El servidor expone el MCP en `http://localhost:3000/mcp` (Streamable HTTP, stateless). Si definiste `PEY_MCP_TOKEN`, manda `Authorization: Bearer <token>`.
 
@@ -7,13 +7,13 @@ El servidor expone el MCP en `http://localhost:3000/mcp` (Streamable HTTP, state
 Opción A, por comando:
 
 ```bash
-codex mcp add pey --url http://localhost:3000/mcp
+codex mcp add cobrale --url http://localhost:3000/mcp
 ```
 
 Opción B, en `~/.codex/config.toml`:
 
 ```toml
-[mcp_servers.pey]
+[mcp_servers.cobrale]
 url = "http://localhost:3000/mcp"
 # bearer_token_env_var = "PEY_MCP_TOKEN"   # si usas token
 tool_timeout_sec = 300                      # esperar_pago puede tardar
@@ -22,7 +22,7 @@ tool_timeout_sec = 300                      # esperar_pago puede tardar
 Si tu versión de Codex no acepta `url`, usa el puente stdio:
 
 ```toml
-[mcp_servers.pey]
+[mcp_servers.cobrale]
 command = "npx"
 args = ["-y", "mcp-remote", "http://localhost:3000/mcp"]
 tool_timeout_sec = 300
@@ -39,7 +39,7 @@ Prompt de demo:
 Ver `examples/agente-empresa/agente.js`. Necesita `PUBLIC_URL` https:
 
 ```js
-tools: [{ type: "mcp", server_label: "pey", server_url: `${PUBLIC_URL}/mcp`, require_approval: "never" }]
+tools: [{ type: "mcp", server_label: "cobrale", server_url: `${PUBLIC_URL}/mcp`, require_approval: "never" }]
 ```
 
 ## Claude Desktop / otros clientes MCP

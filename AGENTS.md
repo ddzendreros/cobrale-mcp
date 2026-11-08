@@ -1,9 +1,9 @@
-# AGENTS.md — AlanCobra
+# AGENTS.md — Cóbrale
 
 Contexto para Codex (y para el equipo). Léelo antes de tocar código.
 
 ## Qué es
-**AlanCobra = CoDi para agentes.** Un servidor MCP sobre la API de [pey](https://docs.pey.mx) para que cualquier agente de IA cobre con CoDi (Banxico: gratis, instantáneo). Su primera app es **Libreta**: la libreta del fiado de la tiendita, que se cobra sola (foto/voz con OpenAI → cobro CoDi → webhook → pagado).
+**Cóbrale = pagos CoDi para agentes.** Un servidor MCP sobre la API de [pey](https://docs.pey.mx) para que cualquier agente de IA cobre con CoDi (Banxico: gratis, instantáneo). Su primera app es **Libreta**: la libreta del fiado de la tiendita, que se cobra sola (foto/voz con OpenAI → cobro CoDi → webhook → pagado).
 
 Hackathon DevDay Exchange Community, CDMX. Entrega: domingo 8 nov, 13:00.
 
@@ -12,7 +12,7 @@ La base ya funciona en modo demo; no se reescribe. Lo único que puede tumbar el
 
 | Quién | Rama | Qué le toca |
 |---|---|---|
-| **Diego** · MCP + núcleo + repo | `feat/mcp` | Único que hace merge a `main`. Conectar Codex al MCP, `cancelar_cobro`, resource `pey://pagos/hoy`, arreglar `scripts/test-mcp.js` (tiene fijo el puerto 3000). Con la key real: `cobrar_a_celular` al cel de Alan → `esperar_pago` responde pagado. |
+| **Diego** · MCP + núcleo + repo | `feat/mcp` | Único que hace merge a `main`. Conectar Codex al MCP, `cancelar_cobro`, resource `cobrale://pagos/hoy`, arreglar `scripts/test-mcp.js` (tiene fijo el puerto 3000). Con la key real: `cobrar_a_celular` al cel de Alan → `esperar_pago` responde pagado. |
 | **Aldo** · Libreta | `feat/libreta` | Pestaña "Agentes" en vivo + bloque "Conecta tu agente". Probar foto de una libreta de fiado escrita a mano de verdad y ajustar el prompt. Pulir vista en celular. Preparar datos del demo. |
 | **Alan** · infra + B2B + entrega | `feat/infra` | **Antes de las 16:00 del sábado:** cuenta en portal.mipey.mx, API key, cuenta de pago, túnel (cloudflared) y webhook a `PUBLIC_URL/webhooks/pey`. Después: deploy, agente de empresa conversacional, landing `docs/index.html`, video de respaldo y envío. |
 
@@ -98,7 +98,7 @@ Antes de cada PR: `npm start` levanta sin errores y `npm run test:mcp` pasa (con
 
 ## Prompts iniciales para Codex
 **Diego (MCP + núcleo):**
-> Lee AGENTS.md y docs/codex.md. Trabaja solo en src/mcp, src/pey y scripts/. Primero arregla scripts/test-mcp.js: el POST de simulate usa `http://localhost:3000` fijo; debe salir del mismo origen que la URL del MCP (argv[2]). Luego en src/mcp/server.js agrega `cancelar_cobro` (usa `supersede`, solo si está pending) y un resource `pey://pagos/hoy`; documenta ambos en docs/codex.md. No cambies firmas del contrato. Corre `npm run test:mcp` al final.
+> Lee AGENTS.md y docs/codex.md. Trabaja solo en src/mcp, src/pey y scripts/. Primero arregla scripts/test-mcp.js: el POST de simulate usa `http://localhost:3000` fijo; debe salir del mismo origen que la URL del MCP (argv[2]). Luego en src/mcp/server.js agrega `cancelar_cobro` (usa `supersede`, solo si está pending) y un resource `cobrale://pagos/hoy`; documenta ambos en docs/codex.md. No cambies firmas del contrato. Corre `npm run test:mcp` al final.
 
 **Aldo (Libreta):**
 > Lee AGENTS.md. Trabaja solo en src/libreta y public/. Agrega en la UI una pestaña "Agentes" que muestre en vivo los cobros con `source: 'mcp'` (llegan por el SSE de /api/events) y un bloque "Conecta tu agente" con la URL de /mcp copiable. Revisa que todo se vea bien a 375px de ancho. No cambies src/pey.

@@ -52,7 +52,7 @@ button{margin-top:20px;font:600 18px system-ui;background:#0a7d4f;color:#fff;bor
 app.listen(PORT, async () => {
   await ai.pickModel();
   const m = payments.mode();
-  console.log(`\n💸 AlanCobra lista en http://localhost:${PORT}`);
+  console.log(`\n💸 Cóbrale lista en http://localhost:${PORT}`);
   console.log(`   Libreta:  http://localhost:${PORT}/`);
   console.log(`   MCP:      ${m.publicUrl || `http://localhost:${PORT}`}/mcp ${process.env.PEY_MCP_TOKEN ? "(con token)" : "(sin token)"}`);
   console.log(`   pey:      ${m.pey === "live" ? "EN VIVO" : "DEMO simulado (sin PEY_API_KEY)"}`);
