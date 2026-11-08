@@ -56,6 +56,7 @@
       <button class="tab active" data-tab="libreta">Libreta</button>
       <button class="tab" data-tab="mostrador">Mostrador</button>
       <button class="tab" data-tab="actividad">Actividad</button>
+      <button class="tab" data-tab="agentes">Agentes 🤖 <span class="tab-badge" id="agentBadge" hidden></span></button>
     </nav>
 
     <section class="panel" id="panel-libreta">
@@ -84,6 +85,55 @@
     <section class="panel" id="panel-actividad" hidden>
       <ul class="feed" id="feed"></ul>
       <div class="row end"><button class="btn ghost small" id="resetBtn">Borrar todo (demo)</button></div>
+    </section>
+
+    <section class="panel" id="panel-agentes" hidden>
+      <ul class="agent-charges" id="agentCharges"></ul>
+      <div class="empty agent-empty" id="agentEmpty">
+        <div class="empty-icon">🤖</div>
+        <h2>Todavía ningún agente ha cobrado. Conecta uno 👇</h2>
+      </div>
+
+      <section class="agent-connect">
+        <div class="agent-connect-heading">
+          <div class="empty-icon">🔌</div>
+          <div>
+            <h2>Conecta tu agente</h2>
+            <p>Conecta el MCP de Cóbrale para que tu agente cree cobros CoDi y veas aquí su actividad.</p>
+          </div>
+        </div>
+        <div class="agent-connect-grid">
+          <article class="agent-connect-card">
+            <div class="agent-connect-card-head">
+              <h3>URL del servidor MCP</h3>
+              <button class="btn small" type="button" data-copy="#agentMcpUrl">Copiar</button>
+            </div>
+            <pre class="agent-code"><code id="agentMcpUrl"></code></pre>
+          </article>
+          <article class="agent-connect-card">
+            <div class="agent-connect-card-head">
+              <h3>Codex</h3>
+              <button class="btn small" type="button" data-copy="#agentCodex">Copiar</button>
+            </div>
+            <pre class="agent-code"><code id="agentCodex"></code></pre>
+          </article>
+          <article class="agent-connect-card">
+            <div class="agent-connect-card-head">
+              <h3>Configuración TOML</h3>
+              <button class="btn small" type="button" data-copy="#agentToml">Copiar</button>
+            </div>
+            <pre class="agent-code"><code id="agentToml"></code></pre>
+          </article>
+          <article class="agent-connect-card">
+            <div class="agent-connect-card-head">
+              <h3>Responses API</h3>
+              <button class="btn small" type="button" data-copy="#agentResponses">Copiar</button>
+            </div>
+            <pre class="agent-code"><code id="agentResponses"></code></pre>
+          </article>
+        </div>
+        <p class="agent-auth-note" id="agentAuthNote" hidden>Este servidor pide token: pídeselo al equipo.</p>
+      </section>
     </section>
   </main>
 
