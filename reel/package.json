@@ -1,0 +1,29 @@
+{
+  "name": "cobrale-reel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reel de presentación de Cóbrale + Libreta (Remotion). Independiente del proyecto: no se importa desde src/.",
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio src/index.ts",
+    "voz": "python scripts/voz.py",
+    "medir": "node scripts/medir.mjs",
+    "sonido": "node scripts/sonido.mjs",
+    "render": "remotion render src/index.ts Reel out/cobrale-reel.mp4 --codec=h264 --crf=17",
+    "render:wide": "remotion render src/index.ts ReelWide out/cobrale-reel-16x9.mp4 --codec=h264 --crf=17",
+    "still": "remotion still src/index.ts Reel",
+    "typecheck": "tsc --noEmit",
+    "render:ig": "remotion render src/index.ts Reel .tmp/ig-raw.mp4 --codec=h264 --image-format=png --crf=17 --x264-preset=slow --audio-bitrate=128k --pixel-format=yuv420p && ffmpeg -y -loglevel error -i .tmp/ig-raw.mp4 -c copy -bsf:v h264_metadata=colour_primaries=1:transfer_characteristics=1:matrix_coefficients=1:video_full_range_flag=0 -movflags +faststart out/cobrale-reel-ig.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.541",
+    "@remotion/google-fonts": "4.0.541",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.541"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "typescript": "^7.0.2"
+  }
+}

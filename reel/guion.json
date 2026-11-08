@@ -1,0 +1,60 @@
+{
+  "voz": { "nombre": "es-MX-JorgeNeural", "rate": "+9%", "pitch": "-2Hz" },
+  "escenas": [
+    {
+      "id": "gancho",
+      "texto": "CoDi es de Banxico, es gratis y el dinero llega en segundos. Aun así, seguimos cobrando en efectivo.",
+      "habla": "Codi es de Banxico, es gratis y el dinero llega en segundos. Aun así, seguimos cobrando en efectivo."
+    },
+    {
+      "id": "problema",
+      "texto": "¿Por qué? Porque integrarlo es chamba de programador, y ni la tiendita ni las empresas lo van a hacer.",
+      "habla": "¿Por qué? Porque integrarlo es chamba de programador, y ni la tiendita ni las empresas lo van a hacer."
+    },
+    {
+      "id": "giro",
+      "texto": "Pero los agentes de IA sí saben usar APIs. Solo les faltaban manos para cobrar.",
+      "habla": "Pero los agentes de I-A sí saben usar A-P-Is. Solo les faltaban manos... para cobrar."
+    },
+    {
+      "id": "cobrale",
+      "texto": "Cóbrale es un servidor MCP sobre pey: cualquier agente cobra con CoDi, por QR, al celular o con un link.",
+      "habla": "Cóbrale es un servidor eme ce pe sobre Pei: cualquier agente cobra con Codi, por Ku Erre, al celular o con un link."
+    },
+    {
+      "id": "esperar",
+      "texto": "La clave es esperar_pago: pey avisa cuando llega el dinero y el agente se entera al instante.",
+      "habla": "La clave es esperar pago: Pei avisa cuando llega el dinero y el agente se entera al instante."
+    },
+    {
+      "id": "libreta",
+      "texto": "Para probarlo construí Libreta, para el usuario más difícil: la tiendita, donde el fiado vive en un cuaderno.",
+      "habla": "Para probarlo construí Libreta, para el usuario más difícil: la tiendita, donde el fiado vive en un cuaderno."
+    },
+    {
+      "id": "foto",
+      "texto": "Foto al cuaderno y la IA de OpenAI lo pasa a limpio: ignora lo tachado, y si un monto no se lee, lo marca en vez de inventarlo. O solo di: cóbrale a Doña Mary.",
+      "habla": "Foto al cuaderno, y la I-A de Open Ei Ai lo pasa a limpio: ignora lo tachado, y si un monto no se lee, lo marca en vez de inventarlo. O solo di: cóbrale a Doña Mary."
+    },
+    {
+      "id": "cobro",
+      "texto": "Sale el QR de CoDi, el cliente paga, y en segundos la cuenta queda en cero. Sin comisión.",
+      "habla": "Sale el Ku Erre de Codi, el cliente paga, y en segundos la cuenta queda en cero. Sin comisión."
+    },
+    {
+      "id": "agente",
+      "texto": "Y no es solo para tienditas. En Codex le dices: cóbrale mil doscientos cincuenta pesos por la factura FAC-001. Cobra, espera, y responde: pagado.",
+      "habla": "Y no es solo para tienditas. En Codex le dices: cóbrale mil doscientos cincuenta pesos por la factura efe a ce, cero cero uno. Cobra, espera, y responde: pagado."
+    },
+    {
+      "id": "confianza",
+      "texto": "Un solo servidor para todos los agentes, con firma verificada, sin cobros duplicados, y herramientas que solo cobran: nunca mandan dinero.",
+      "habla": "Un solo servidor para todos los agentes, con firma verificada, sin cobros duplicados, y herramientas que solo cobran: nunca mandan dinero."
+    },
+    {
+      "id": "cierre",
+      "texto": "Cóbrale: pagos CoDi para agentes. pey le dio una API a CoDi; nosotros le damos manos a los agentes.",
+      "habla": "Cóbrale: pagos Codi para agentes. Pei le dio una A-P-I a Codi; nosotros le damos manos a los agentes."
+    }
+  ]
+}
