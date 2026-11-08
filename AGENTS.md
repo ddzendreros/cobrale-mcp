@@ -41,13 +41,13 @@ scripts/               check (diagnóstico real), test-mcp (e2e demo), smoke (np
 createCharge({ kind: 'qr'|'push'|'link', amount, concept?, phone?, reference?, source?: 'libreta'|'mcp'|'api', customerId?, customerName? }) -> Promise<Charge>
 getCharge(id) -> Charge|null
 listCharges({ status?, sinceMs?, source?, limit? }) -> Charge[]
-waitForPayment(id, timeoutMs) -> Promise<Charge>        // resuelve al pagarse o al timeout
+waitForPayment(id, timeoutMs) -> Promise<Charge>        // resuelve al pagarse, cancelarse o al timeout
 simulatePayment(id) -> string                            // solo demo / ALLOW_SIMULATE=1
 handleWebhook(rawBody, headers) -> { status, body }      // verifica firma Standard Webhooks
 reconcile() -> Promise<number>                           // respaldo vía GET /transaction/api-key
 supersede(id), toPublic(charge), mode(), linksEnabled()
 txToEvent(tx) -> Evento de conciliación con la forma de un webhook
-events: 'charge' (Charge) | 'paid' (Charge) | 'orphan' ({amount,...})
+events: 'charge' (Charge) | 'paid' (Charge) | 'superseded' (Charge) | 'orphan' ({amount,...})
 Charge = { id, kind, status: 'pending'|'paid'|'superseded', amount, chargedAmount, concept, reference, source,
            customerId, customerName, phone, url, qrString, qrSvg, peyId, peyTx, numRef, createdAt, paidAt }
 ```
@@ -55,7 +55,7 @@ Con `PEY_DEBUG=1`, `handleWebhook` conserva en `store.getDb().webhookLog` los ú
 Libreta escucha `events.on('paid')` para descontar del fiado. El MCP usa `waitForPayment`.
 
 ## Herramientas MCP (nombres fijos, el pitch las menciona)
-`cobrar_con_qr`, `cobrar_a_celular`, `crear_link_de_pago`, `esperar_pago`, `estado_del_cobro`, `pagos_recibidos`.
+`cobrar_con_qr`, `cobrar_a_celular`, `crear_link_de_pago`, `esperar_pago`, `estado_del_cobro`, `pagos_recibidos`, `cancelar_cobro`.
 Si agregas una nueva, documéntala en `docs/codex.md`.
 
 ## API de pey usada
