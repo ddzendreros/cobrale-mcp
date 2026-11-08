@@ -6,6 +6,12 @@ import * as ai from "./ai.js";
 import * as payments from "../pey/payments.js";
 
 export const router = express.Router();
+const ADMIN = process.env.ADMIN_TOKEN || "";
+
+router.use("/api", (req, res, next) => {
+  if (!ADMIN || req.method === "GET" || req.get("x-admin-token") === ADMIN) return next();
+  res.status(401).json({ message: "Modo solo lectura: falta el token de admin" });
+});
 
 // ---------------- Tiempo real ----------------
 const clients = new Set();
@@ -13,6 +19,7 @@ const publicState = () => ({
   ...ledger.snapshot(),
   mode: {
     ...payments.mode(),
+    locked: Boolean(ADMIN),
     ai: ai.currentModel(),
     mcp: { url: `${payments.baseUrl()}/mcp`, auth: Boolean(process.env.PEY_MCP_TOKEN) },
   },

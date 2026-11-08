@@ -118,6 +118,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 0 20px 80px; }
 .btn.small { font-size: 12px; padding: 6px 10px; }
 .btn.wide { width: 100%; padding: 16px; font-size: 18px; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
+.read-only .readonly-disabled { pointer-events: none; opacity: .45; cursor: not-allowed; }
 .card-head .right { text-align: right; }
 .pending-badge { display: inline-block; font-size: 11px; font-weight: 700; background: var(--yellow); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
