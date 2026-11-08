@@ -77,7 +77,7 @@ const ACTION_SCHEMA = {
 };
 
 export async function parseCommand(text, knownCustomers = []) {
-  if (!client) return { ...localParseCommand(text), ai: false };
+  if (!client) return { ...localParseCommand(text, knownCustomers), ai: false };
   try {
     const out = await structured({
       schemaName: "libreta_actions",
@@ -95,7 +95,7 @@ Montos con decimales si aplica. No inventes montos que no se dijeron.`,
     return { ...out, ai: true };
   } catch (e) {
     console.warn("[ai] parseCommand falló, uso parser local:", e.message);
-    return { ...localParseCommand(text), ai: false, aiError: e.message };
+    return { ...localParseCommand(text, knownCustomers), ai: false, aiError: e.message };
   }
 }
 

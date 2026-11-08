@@ -1,7 +1,10 @@
 // Parser local de respaldo: si no hay internet/IA, la libreta sigue funcionando con frases simples.
+import { normName } from "./ledger.js";
 
 const NUM = /\$?\s*(\d+(?:[.,]\d{1,2})?)\s*(?:pesos|varos|baros|mxn)?/i;
 const PHONE = /(?:\+?52\s*)?(\d[\d\s-]{8,}\d)/;
+const COMMAND_PREFIX = /^(?:c[oó]brale|m[aá]ndale|ap[uú]ntale|f[ií]ale|an[oó]tale|anota|c[oó]brame|ponle)\b[,:]?\s*/i;
+const HONORIFICS_IN_TEXT = ["dona", "don", "senora", "senor", "sra", "sr", "srita", "la", "el", "tia", "tio", "seno", "joven", "guero", "profe"];
 
 function amountOf(t) {
   const clean = t.replace(PHONE, " ");
@@ -13,19 +16,44 @@ function amountOf(t) {
   return Math.max(...all);
 }
 
-function nameOf(t) {
-  const m =
-    t.match(/(?:a|de|para)\s+((?:do[nñ]a|don|la|el|se[nñ]ora|t[ií]a|t[ií]o)?\s*[A-ZÁÉÍÓÚÑ][\wáéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][\wáéíóúñ]+)?)/) ||
-    t.match(/^((?:do[nñ]a|don|la|el|se[nñ]ora|t[ií]a|t[ií]o)?\s*[A-ZÁÉÍÓÚÑ][\wáéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][\wáéíóúñ]+)?)/i);
-  if (!m) return null;
-  return m[1].replace(/\s+(se|ya|me|le|pag[oó]|abon[oó]|llev[oó]).*$/i, "").trim();
+function knownNameOf(t, knownCustomers) {
+  if (!Array.isArray(knownCustomers) || !knownCustomers.length) return null;
+  // normName quita honoríficos al principio; permite el mismo honorífico antes
+  // del nombre dentro de la frase, como en "a doña mary".
+  const normalizedText = normName(t);
+  const paddedText = " " + normalizedText + " ";
+  return knownCustomers
+    .filter((customer) => typeof customer === "string")
+    .map((customer) => ({ customer, normalized: normName(customer) }))
+    .filter(({ normalized }) => normalized && (
+      paddedText.includes(" " + normalized + " ") ||
+      HONORIFICS_IN_TEXT.some((honorific) => paddedText.includes(" " + honorific + " " + normalized + " "))
+    ))
+    .sort((a, b) => b.normalized.length - a.normalized.length)[0]?.customer || null;
 }
 
-export function localParseCommand(text) {
+function nameOf(t, knownCustomers = []) {
+  const known = knownNameOf(t, knownCustomers);
+  if (known) return known;
+
+  const clean = t.replace(COMMAND_PREFIX, "");
+  const honorific = "do[nñ]a|don|la|el|se[nñ]ora|t[ií]a|t[ií]o";
+  const stopWords = "se|ya|me|le|es|pag[oó]|abon[oó]|llev[oó]|de|del|a|para|en|el|la|los|las|y";
+  const word = "[A-ZÁÉÍÓÚÑ][\\wáéíóúñ]+";
+  const person =
+    "((?:(?:" + honorific + ")\\s+)?" +
+    word +
+    "(?:\\s+(?!(?:" + stopWords + ")\\b)" + word + ")?)";
+  const m = clean.match(new RegExp("\\b(?:a|de|para)\\s+" + person, "i")) || clean.match(new RegExp("^" + person, "i"));
+  if (!m) return null;
+  return m[1].replace(new RegExp("\\s+(?:" + stopWords + ")\\b.*$", "i"), "").trim();
+}
+
+export function localParseCommand(text, knownCustomers = []) {
   const t = String(text || "").trim();
   const lower = t.toLowerCase();
   const amount = amountOf(t);
-  const name = nameOf(t);
+  const name = nameOf(t, knownCustomers);
   const phone = (t.match(PHONE)?.[1] || "").replace(/\D/g, "").slice(-10) || null;
   const items = (t.match(/(?:se llev[oó]|llev[oó]|de)\s+(.+?)(?:\s+de\s+\$?\d|$)/i)?.[1] || "").slice(0, 60);
 
