@@ -46,10 +46,12 @@ simulatePayment(id) -> string                            // solo demo / ALLOW_SI
 handleWebhook(rawBody, headers) -> { status, body }      // verifica firma Standard Webhooks
 reconcile() -> Promise<number>                           // respaldo vía GET /transaction/api-key
 supersede(id), toPublic(charge), mode(), linksEnabled()
+txToEvent(tx) -> Evento de conciliación con la forma de un webhook
 events: 'charge' (Charge) | 'paid' (Charge) | 'orphan' ({amount,...})
 Charge = { id, kind, status: 'pending'|'paid'|'superseded', amount, chargedAmount, concept, reference, source,
            customerId, customerName, phone, url, qrString, qrSvg, peyId, peyTx, numRef, createdAt, paidAt }
 ```
+Con `PEY_DEBUG=1`, `handleWebhook` conserva en `store.getDb().webhookLog` los últimos 30 `{ at, id, body }` recibidos.
 Libreta escucha `events.on('paid')` para descontar del fiado. El MCP usa `waitForPayment`.
 
 ## Herramientas MCP (nombres fijos, el pitch las menciona)

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { createServer } from "node:net";
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -84,6 +84,31 @@ async function requestJson(baseUrl, pathname, { method = "GET", body, headers = 
 
 async function postJson(baseUrl, pathname, body, headers) {
   return requestJson(baseUrl, pathname, { method: "POST", body, headers });
+}
+
+async function chargeFromTemporaryDb(state, id) {
+  // store.save() escribe con un retraso de 50 ms; deja margen antes de leer la carpeta aislada.
+  await sleep(150);
+  const db = JSON.parse(readFileSync(path.join(state.tempDir, "db.json"), "utf8"));
+  const charge = db.charges.find((item) => item.id === id);
+  assert.ok(charge, `No encontré el cobro ${id} en los datos temporales`);
+  return charge;
+}
+
+async function sendSignedWebhook(state, event, id) {
+  const rawBody = JSON.stringify(event);
+  const date = new Date();
+  const result = await requestJson(state.baseUrl, "/webhooks/pey", {
+    method: "POST",
+    body: rawBody,
+    headers: {
+      "content-type": "application/json",
+      "webhook-id": id,
+      "webhook-timestamp": String(Math.floor(date.getTime() / 1000)),
+      "webhook-signature": new Webhook(state.secret).sign(id, date, rawBody),
+    },
+  });
+  return result;
 }
 
 async function runChecks(state) {
@@ -226,6 +251,60 @@ async function runChecks(state) {
   });
   assert.match(String(orphanResult.result || ""), /sin asignar/i, "Un pago sin cobro debe quedar sin asignar");
   check("webhooks rechaza firmas faltantes, acepta pagos firmados, detecta duplicados y registra huérfanos");
+
+  const qrWithoutMetadata = await postJson(state.baseUrl, "/api/command", { text: "Cóbrame 34 de pan" });
+  const qrWithoutMetadataSaved = await chargeFromTemporaryDb(state, qrWithoutMetadata.charge.id);
+  const qrWithoutMetadataResult = await sendSignedWebhook(state, {
+    type: "codi.qr.payment_received",
+    amount: qrWithoutMetadataSaved.chargedAmount,
+    codiQrId: qrWithoutMetadataSaved.peyId,
+    transactionId: "tx_smoke_qr_id_only",
+    datePaid: Math.floor(Date.now() / 1000),
+  }, "wh_smoke_qr_id_only");
+  assert.match(String(qrWithoutMetadataResult.result || ""), /^pagado/i, "El QR debe casar por codiQrId sin metadata");
+
+  const pn = await postJson(state.baseUrl, `/api/customers/${encodeURIComponent(lupita.id)}/charge`, { method: "push" });
+  const pnResult = await sendSignedWebhook(state, {
+    type: "codi.pn.payment_received",
+    amount: (await chargeFromTemporaryDb(state, pn.charge.id)).chargedAmount,
+    transactionId: "tx_smoke_pn_metadata",
+    datePaid: Math.floor(Date.now() / 1000),
+    metadata: { externalMetadata: { chargeId: pn.charge.id } },
+  }, "wh_smoke_pn_metadata");
+  assert.match(String(pnResult.result || ""), /^pagado/i, "El push debe casar con metadata.externalMetadata.chargeId");
+
+  const link = await postJson(state.baseUrl, `/api/customers/${encodeURIComponent(lupita.id)}/charge`, { method: "link", amount: 18 });
+  const linkResult = await sendSignedWebhook(state, {
+    type: "payment_link.status_updated",
+    status: "paid",
+    clientReferenceId: link.charge.id,
+    transactions: [{
+      transactionId: "tx_smoke_link_client_ref",
+      datePaid: Math.floor(Date.now() / 1000),
+      amountBreakdown: { base: 18 },
+    }],
+  }, "wh_smoke_link_client_ref");
+  assert.match(String(linkResult.result || ""), /^pagado/i, "El link debe casar por clientReferenceId y el monto base de la transacción");
+
+  const firstTen = await postJson(state.baseUrl, "/api/command", { text: "Cóbrame 10 de pan" });
+  const secondTen = await postJson(state.baseUrl, "/api/command", { text: "Cóbrame 10 de café" });
+  const firstTenSaved = await chargeFromTemporaryDb(state, firstTen.charge.id);
+  const firstTenEvent = {
+    type: "codi.qr.payment_received",
+    amount: firstTenSaved.chargedAmount,
+    codiQrId: firstTenSaved.peyId,
+    transactionId: "tx_smoke_same_transaction",
+    datePaid: Math.floor(Date.now() / 1000),
+  };
+  const firstTenResult = await sendSignedWebhook(state, firstTenEvent, "wh_smoke_same_transaction_first");
+  assert.match(String(firstTenResult.result || ""), /^pagado/i, "El primer cobro de $10 debe pagarse");
+  const repeatedTransactionResult = await sendSignedWebhook(state, firstTenEvent, "wh_smoke_same_transaction_second");
+  assert.match(String(repeatedTransactionResult.result || ""), /^ya pagado/i, "La misma transacción con otro webhook-id debe ser idempotente");
+  const firstTenAfter = await requestJson(state.baseUrl, `/api/charges/${encodeURIComponent(firstTen.charge.id)}`);
+  const secondTenAfter = await requestJson(state.baseUrl, `/api/charges/${encodeURIComponent(secondTen.charge.id)}`);
+  assert.equal(firstTenAfter.charge?.status, "paid", "El primer cobro de $10 debe seguir pagado");
+  assert.equal(secondTenAfter.charge?.status, "pending", "El segundo cobro de $10 debe seguir pendiente");
+  check("QR, push y link casan por los identificadores de pey; un webhook repetido no paga otro cobro del mismo monto");
 
   await runMcpChecks(new URL("/mcp", state.baseUrl).href, { token: "" });
 

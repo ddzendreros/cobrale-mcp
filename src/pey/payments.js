@@ -71,6 +71,9 @@ export async function createCharge(o) {
     Object.assign(c, { peyId: r.id, url: r.url, demo: Boolean(r.demo) });
   } else throw new ChargeError("Tipo de cobro inválido: usa qr, push o link");
 
+  if (process.env.PEY_DEBUG === "1") {
+    console.log("[cobro]", c.id, kind, chargedAmount, "peyId=", c.peyId, "peyTx=", c.peyTx, "numRef=", numRef);
+  }
   d.charges.push(c);
   store.save();
   events.emit("charge", c);
@@ -112,6 +115,16 @@ export function handleWebhook(raw, headers) {
     try { new Webhook(WEBHOOK_SECRET).verify(raw, headers); }
     catch (e) { console.warn("[webhook] firma inválida:", e.message); return { status: 401, body: { message: "firma inválida" } }; }
   }
+  if (process.env.PEY_DEBUG === "1") {
+    const id = headers?.["webhook-id"] || null;
+    const body = String(raw).slice(0, 4000);
+    console.log("[webhook:raw]", id, body);
+    const d = store.getDb();
+    d.webhookLog ||= [];
+    d.webhookLog.push({ at: Date.now(), id, body });
+    d.webhookLog = d.webhookLog.slice(-30);
+    store.save();
+  }
   let evt;
   try { evt = JSON.parse(raw); } catch { return { status: 400, body: { message: "JSON inválido" } }; }
   const result = processEvent(evt, headers["webhook-id"]);
@@ -119,35 +132,66 @@ export function handleWebhook(raw, headers) {
   return { status: 200, body: { ok: true, result } };
 }
 
+function paidAtMilliseconds(datePaid) {
+  if (datePaid === undefined || datePaid === null || datePaid === "") return null;
+  const numeric = Number(datePaid);
+  if (Number.isFinite(numeric)) return numeric < 1_000_000_000_000 ? numeric * 1000 : numeric;
+  const parsed = Date.parse(datePaid);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function findChargeFor(evt, allowAmountOnly = true) {
-  const paidAtMs = evt.datePaid ? Number(evt.datePaid) * 1000 : null;
+  const paidAtMs = paidAtMilliseconds(evt.datePaid);
   const ext = { ...(evt.metadata || {}), ...(evt.metadata?.externalMetadata || {}) };
+  const transactionMetadata = evt.transactions?.[0]?.metadata;
+  const transactionExt = { ...(transactionMetadata || {}), ...(transactionMetadata?.externalMetadata || {}) };
   const by = (fn) => store.getDb().charges.find((c) => c.status !== "paid" && (!paidAtMs || paidAtMs >= c.createdAt - 120_000) && fn(c));
   return (
     (ext.chargeId && by((c) => c.id === ext.chargeId)) ||
+    (transactionExt.chargeId && by((c) => c.id === transactionExt.chargeId)) ||
     (evt.clientReferenceId && by((c) => c.id === evt.clientReferenceId)) ||
     (evt.paymentLinkId && by((c) => c.peyId === evt.paymentLinkId)) ||
     (evt.codiQrId && by((c) => c.peyId === evt.codiQrId)) ||
+    (evt.payableId && by((c) => c.peyId === evt.payableId || c.peyTx === evt.payableId)) ||
     (evt.transactionId && by((c) => c.peyTx === evt.transactionId)) ||
     (evt.numRef && by((c) => c.numRef === String(evt.numRef) && Math.abs(c.chargedAmount - Number(evt.amount)) < 0.005)) ||
-    (allowAmountOnly ? uniquePendingByAmount(Number(evt.amount)) : null)
+    (allowAmountOnly ? uniquePendingByAmount(Number(evt.amount), paidAtMs) : null)
   );
 }
 
-function uniquePendingByAmount(amount) {
+function uniquePendingByAmount(amount, paidAtMs) {
   if (!amount) return null;
-  const cands = store.getDb().charges.filter((c) => c.status === "pending" && c.createdAt > Date.now() - 3 * 3600_000 && Math.abs(c.chargedAmount - amount) < 0.005);
+  const cands = store.getDb().charges.filter((c) => c.status === "pending" && c.createdAt > Date.now() - 3 * 3600_000 && (!paidAtMs || paidAtMs >= c.createdAt - 120_000) && Math.abs(c.chargedAmount - amount) < 0.005);
   return cands.length === 1 ? cands[0] : null;
+}
+
+function alreadyPaidFor(evt) {
+  const transactionId = evt.transactionId || evt.transactions?.[0]?.transactionId;
+  return store.getDb().charges.find((c) => c.status === "paid" && (
+    (transactionId && (c.transactionId === transactionId || c.peyTx === transactionId)) ||
+    (evt.type === "codi.qr.payment_received" && evt.codiQrId && c.peyId === evt.codiQrId) ||
+    (evt.type === "payment_link.status_updated" && evt.paymentLinkId && c.peyId === evt.paymentLinkId)
+  )) || null;
 }
 
 function processEvent(evt, dedupeId, { allowAmountOnly = true } = {}) {
   const d = store.getDb();
   const key = dedupeId || evt.transactionId || (evt.paymentLinkId && evt.paymentLinkId + evt.status);
   if (key && d.seenWebhooks.includes(key)) return "duplicado";
-  if (key) { d.seenWebhooks.push(key); d.seenWebhooks = d.seenWebhooks.slice(-500); }
 
-  if (evt.type === "payment_link.status_updated" && evt.status !== "paid") return "estado " + evt.status;
-  if (!/payment_received|status_updated/.test(evt.type || "")) return "ignorado";
+  if (evt.type === "payment_link.status_updated" && evt.status !== "paid") {
+    if (key) { d.seenWebhooks.push(key); d.seenWebhooks = d.seenWebhooks.slice(-500); }
+    return "estado " + evt.status;
+  }
+  if (!/payment_received|status_updated/.test(evt.type || "")) {
+    if (key) { d.seenWebhooks.push(key); d.seenWebhooks = d.seenWebhooks.slice(-500); }
+    return "ignorado";
+  }
+
+  const prior = alreadyPaidFor(evt);
+  if (prior) return "ya pagado " + prior.id;
+
+  if (key) { d.seenWebhooks.push(key); d.seenWebhooks = d.seenWebhooks.slice(-500); }
 
   const amount = evt.amount ?? evt.transactions?.reduce((s, t) => s + (t.amountBreakdown?.base ?? t.amount ?? 0), 0);
   const c = findChargeFor({ ...evt, amount }, allowAmountOnly);
@@ -178,19 +222,64 @@ export function simulatePayment(chargeId) {
 
 // ---------------- Conciliación (por si el webhook no llega) ----------------
 let reconciling = false;
+
+/** Convierte una transacción de GET /transaction/api-key a la forma del webhook. */
+export function txToEvent(tx) {
+  const payableType = tx.payableType;
+  const payableId = tx.payableId;
+  const type = payableType === "PAYMENT_LINK"
+    ? "payment_link.status_updated"
+    : payableType === "API_CODI_PN"
+      ? "codi.pn.payment_received"
+      : "codi.qr.payment_received";
+  return {
+    type,
+    status: tx.status === "PAID" || tx.datePaid ? "paid" : "pending",
+    amount: tx.amountBreakdown?.base ?? tx.amount,
+    transactionId: tx.transactionId || tx.id,
+    datePaid: tx.datePaid,
+    metadata: tx.metadata,
+    concept: tx.description,
+    payableId,
+    ...(payableType === "PAYMENT_LINK" ? { paymentLinkId: payableId } : {}),
+    ...(payableType !== "PAYMENT_LINK" && payableType !== "API_CODI_PN" ? { codiQrId: payableId } : {}),
+  };
+}
+
 export async function reconcile() {
   if (!pey.peyLive() || reconciling) return 0;
   reconciling = true;
   let n = 0;
+  let arrived = 0;
+  let paid = 0;
+  let matched = 0;
   try {
-    const { items } = await pey.listTransactions();
-    for (const tx of items.slice(0, 80)) {
-      if (!(tx.datePaid || /paid|complet|success|liquid/i.test(tx.status || ""))) continue;
-      const evt = { ...tx, type: tx.type || "codi.reconcile.payment_received" };
-      if (!findChargeFor(evt, false)) continue;
-      if (processEvent(evt, "tx_" + (tx.transactionId || tx.id), { allowAmountOnly: false }).startsWith("pagado")) n++;
+    let nextToken;
+    const seenTokens = new Set();
+    // Corre cada 12 s: solo revisa las páginas recientes (máx. 3) y para al pasar de los cobros pendientes más viejos.
+    const pendings = store.getDb().charges.filter((c) => c.status === "pending").map((c) => c.createdAt);
+    const oldestMs = (pendings.length ? Math.min(...pendings) : Date.now()) - 3600_000;
+    for (let pageNo = 0; pageNo < 3; pageNo++) {
+      const page = await pey.listTransactions(nextToken);
+      const items = Array.isArray(page?.items) ? page.items : [];
+      arrived += items.length;
+      for (const tx of items) {
+        if (tx.status !== "PAID") continue;
+        paid++;
+        const evt = txToEvent(tx);
+        const found = findChargeFor(evt, false);
+        if (!found && !alreadyPaidFor(evt)) continue;
+        matched++;
+        if (processEvent(evt, "tx_" + tx.id, { allowAmountOnly: false }).startsWith("pagado")) n++;
+      }
+      const token = page?.nextToken || null;
+      const lastCreatedMs = paidAtMilliseconds(items.at(-1)?.dateCreated);
+      if (!token || seenTokens.has(token) || (lastCreatedMs && lastCreatedMs < oldestMs)) break;
+      seenTokens.add(token);
+      nextToken = token;
     }
   } catch (e) { console.warn("[reconcile]", e.message); } finally { reconciling = false; }
+  if (process.env.PEY_DEBUG === "1") console.log(`[reconcile] items=${arrived} PAID=${paid} casaron=${matched}`);
   return n;
 }
 setInterval(() => {
