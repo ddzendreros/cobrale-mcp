@@ -19,6 +19,12 @@ url = "http://localhost:3000/mcp"
 tool_timeout_sec = 300                      # esperar_pago puede tardar
 ```
 
+Contra el deploy en vivo (cobros reales de $0.01), con el token en la variable de entorno `PEY_MCP_TOKEN`:
+
+```bash
+codex mcp add cobrale --url https://cobrale-mcp-production.up.railway.app/mcp --bearer-token-env-var PEY_MCP_TOKEN
+```
+
 Si tu versión de Codex no acepta `url`, usa el puente stdio:
 
 ```toml

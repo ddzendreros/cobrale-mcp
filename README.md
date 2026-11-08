@@ -11,10 +11,13 @@ y se entera en segundos cuando le pagan. Sin comisión y sin efectivo.
 ![MCP](https://img.shields.io/badge/MCP-Streamable%20HTTP-111827)
 ![CoDi](https://img.shields.io/badge/CoDi-Banco%20de%20M%C3%A9xico-0B7A4B)
 ![pey](https://img.shields.io/badge/API-pey-F59E0B)
+![Claude](https://img.shields.io/badge/IA-Claude%20Opus%205.5-D97757)
 ![OpenAI](https://img.shields.io/badge/OpenAI-Responses%20API-412991)
 ![Licencia](https://img.shields.io/badge/licencia-MIT-2563EB)
 
-[Cómo funciona](#cómo-funciona) · [Para empresas](#para-empresas-cóbrale-mcp) · [Para tienditas](#para-tienditas-libreta) · [Correr en 1 minuto](#correr-en-1-minuto) · [Equipo](#equipo)
+**▶ En vivo: [cobrale-mcp-production.up.railway.app](https://cobrale-mcp-production.up.railway.app)** · [Landing para agentes](https://cobrale-mcp-production.up.railway.app/agentes)
+
+[Pruébalo](#pruébalo-en-vivo) · [Cómo funciona](#cómo-funciona) · [Para empresas](#para-empresas-cóbrale-mcp) · [Para tienditas](#para-tienditas-libreta) · [Correr en 1 minuto](#correr-en-1-minuto) · [Equipo](#equipo)
 
 <br/>
 
@@ -30,6 +33,21 @@ y se entera en segundos cuando le pagan. Sin comisión y sin efectivo.
 </div>
 
 ---
+
+## Pruébalo en vivo
+
+El deploy cobra **con CoDi de verdad**: no es una maqueta.
+
+1. Abre **[cobrale-mcp-production.up.railway.app](https://cobrale-mcp-production.up.railway.app)** en la compu.
+2. Escribe o dicta *"Cóbrame 5 de prueba"* (o apúntale algo a un cliente y dale **Cobrar**). Aparece un QR CoDi.
+3. Escanéalo con la app de tu banco (CoDi → *Escanear QR*) y paga.
+4. En segundos la pantalla cambia a **¡Pagado!**: el webhook firmado de pey llegó al servidor y descontó la cuenta. No hay que tocar nada.
+
+> **Importante:** cualquier monto se cobra como **$0.01 MXN** (`PEY_TEST_AMOUNT`). El centavo cae en una CLABE de prueba que pey habilitó para el hackathon, porque dar de alta una cuenta propia ante Banxico tarda unos cinco días. Con la cuenta del tendero activa, el mismo código cobra el monto real.
+
+Probado el 8 de noviembre de 2026: un pago QR CoDi de $0.01 desde una app bancaria se marcó como pagado en la Libreta en el mismo segundo, por webhook con firma verificada.
+
+El botón *Simular pago* sigue disponible como plan B si el wifi falla; los pagos reales nunca lo necesitan.
 
 ## El problema
 
@@ -87,6 +105,8 @@ codex mcp add cobrale --url http://localhost:3000/mcp
 
 > *"Cóbrale $0.01 al 55XXXXXXXX por la factura FAC-001 y avísame cuando pague."*
 
+El MCP del deploy está en `https://cobrale-mcp-production.up.railway.app/mcp` y pide `Authorization: Bearer <PEY_MCP_TOKEN>`, porque crea cobros reales. Para probarlo sin token, córrelo local en modo demo con los dos comandos de arriba.
+
 | Herramienta | Qué hace |
 |---|---|
 | `cobrar_con_qr` | QR CoDi para cobro presencial. Regresa la imagen y una página `/cobro/:id` con el estado en vivo |
@@ -131,20 +151,20 @@ cp .env.example .env      # opcional: sin keys corre en modo demo
 npm start                 # http://localhost:3000
 ```
 
-Sin `PEY_API_KEY` ni `OPENAI_API_KEY` todo funciona en **modo demo**: CoDi simulado (botón *Simular pago*) y un parser local de frases. Con las keys, todo es real.
+Sin `PEY_API_KEY` ni key de IA (`ANTHROPIC_API_KEY` u `OPENAI_API_KEY`) todo funciona en **modo demo**: CoDi simulado (botón *Simular pago*) y un parser local de frases. Con las keys, todo es real.
 
 | Comando | Para qué |
 |---|---|
 | `npm run dev` | Servidor con recarga automática |
-| `npm run check` | Diagnóstico real: OpenAI, QR de $0.01 en pey y webhook |
+| `npm run check` | Diagnóstico real: IA (Claude u OpenAI), QR de $0.01 en pey y webhook |
 | `npm run test:mcp` | Prueba de punta a punta del MCP en modo demo |
 | `npm run agente -- "…"` | Agente de empresa: con texto o `--once "…"` responde una vez; sin texto abre chat interactivo (requiere `PUBLIC_URL` https y `OPENAI_API_KEY`) |
 
 <details>
 <summary><b>Pasar a modo en vivo</b></summary>
 
-1. **pey**: entra a [portal.mipey.mx](https://portal.mipey.mx), agrega una cuenta de pago (mientras se activa, pey da una de prueba) y crea una **API key** → `PEY_API_KEY`.
-2. **OpenAI**: `OPENAI_API_KEY`. El modelo se elige solo según lo que tenga disponible la key, o se fija con `OPENAI_MODEL`.
+1. **pey**: entra a [portal.mipey.mx](https://portal.mipey.mx) → *Herramientas de desarrollador*, da de alta una cuenta CoDi (mientras Banxico activa la tuya, pey da CLABEs de prueba) y crea una **API key** ligada a esa cuenta → `PEY_API_KEY`.
+2. **IA**: `ANTHROPIC_API_KEY` (Claude, recomendado; modelo con `ANTHROPIC_MODEL`, default `claude-opus-5-5`) u `OPENAI_API_KEY` como alternativa. Si están las dos, se usa Claude.
 3. **URL pública para el webhook**, en otra terminal:
    ```bash
    npx cloudflared tunnel --url http://localhost:3000
@@ -167,7 +187,8 @@ Sin `PEY_API_KEY` ni `OPENAI_API_KEY` todo funciona en **modo demo**: CoDi simul
 | `PEY_API_KEY`, `PEY_WEBHOOK_SECRET` | key y secreto `whsec_…` del portal de pey |
 | `PUBLIC_URL` | `https://<tu-app>.up.railway.app` |
 | `PEY_TEST_AMOUNT` | `0.01` para probar con un centavo |
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | key y modelo fijo con visión |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | IA de la Libreta con Claude (default `claude-opus-5-5`) |
+| `OPENAI_API_KEY`, `OPENAI_MODEL` | alternativa a Claude; también la usa el agente de empresa |
 | `TZ` | `America/Mexico_City` ("hoy" en hora de CDMX) |
 | `PEY_MCP_TOKEN` | token para `/mcp` |
 | `ADMIN_TOKEN` | deja la Libreta pública en solo lectura; se abre una vez con `/?admin=<token>` |
@@ -196,9 +217,11 @@ Cada cobro manda `metadata.chargeId` para asociar el pago aunque cambie el `numR
 </details>
 
 <details>
-<summary><b>Cómo usamos OpenAI</b></summary>
+<summary><b>Cómo usamos la IA (Claude)</b></summary>
 
-- **Comandos** → Structured Outputs con JSON Schema estricto y acciones `add_debt`, `cash_payment`, `charge`, `set_phone`, `sale`. Conoce a los clientes existentes, así que "doña mari" cae en "Doña Mary".
+La Libreta usa **Claude Opus 5.5** por la Messages API con salida estructurada (`json_schema`). OpenAI queda como proveedor alterno con el mismo esquema, y el [agente de empresa](examples/agente-empresa/agente.js) usa la Responses API de OpenAI con Cóbrale como MCP remoto: el MCP funciona con cualquier agente.
+
+- **Comandos** → salida estructurada con JSON Schema estricto y acciones `add_debt`, `cash_payment`, `charge`, `set_phone`, `sale`. Conoce a los clientes existentes, así que "doña mari" cae en "Doña Mary".
 - **Foto de la libreta** → visión con el mismo esquema estricto: cliente, productos, monto y nivel de confianza por línea. El tendero revisa antes de guardar.
 - **Recordatorios** → mensaje cálido y respetuoso, con el monto exacto y el link de pago.
 - Si no hay internet, un parser local entiende frases simples y el demo no se cae.
@@ -223,6 +246,6 @@ El contrato del núcleo y las convenciones del equipo están en [AGENTS.md](AGEN
 
 Hecho en la Ciudad de México para el **DevDay Exchange Community Hackathon 2026** por **Diego**, **Aldo** y **Alan**.
 
-Construido sobre [pey](https://docs.pey.mx), CoDi de Banco de México, la API de OpenAI y el [SDK de Model Context Protocol](https://github.com/modelcontextprotocol/typescript-sdk).
+Construido sobre [pey](https://docs.pey.mx), CoDi de Banco de México, Claude de Anthropic, la API de OpenAI y el [SDK de Model Context Protocol](https://github.com/modelcontextprotocol/typescript-sdk).
 
 Licencia MIT.
