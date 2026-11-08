@@ -138,7 +138,7 @@ Sin `PEY_API_KEY` ni `OPENAI_API_KEY` todo funciona en **modo demo**: CoDi simul
 | `npm run dev` | Servidor con recarga automática |
 | `npm run check` | Diagnóstico real: OpenAI, QR de $0.01 en pey y webhook |
 | `npm run test:mcp` | Prueba de punta a punta del MCP en modo demo |
-| `npm run agente -- "…"` | Agente de empresa (requiere `PUBLIC_URL` https y `OPENAI_API_KEY`) |
+| `npm run agente -- "…"` | Agente de empresa: con texto o `--once "…"` responde una vez; sin texto abre chat interactivo (requiere `PUBLIC_URL` https y `OPENAI_API_KEY`) |
 
 <details>
 <summary><b>Pasar a modo en vivo</b></summary>
