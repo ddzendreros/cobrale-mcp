@@ -13,20 +13,85 @@ const ago = (t) => {
 };
 const maskPhone = (p) => (p ? `${p.slice(0, 2)} •••• ${p.slice(-4)}` : "");
 
+let adminToken = "";
+let serverLocked = false;
+function readAdminToken() {
+  const url = new URL(location.href);
+  if (url.searchParams.has("admin")) {
+    adminToken = url.searchParams.get("admin") || "";
+    try {
+      if (adminToken) localStorage.setItem("cobrale-admin", adminToken);
+      else localStorage.removeItem("cobrale-admin");
+    } catch {}
+    url.searchParams.delete("admin");
+    history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  } else {
+    try { adminToken = localStorage.getItem("cobrale-admin") || ""; } catch {}
+  }
+}
+readAdminToken();
+
 let state = null;
 let openChargeId = null;
 let pollTimer = null;
 let agentCharges = [];
 let agentBadgeCount = 0;
 
+const isReadOnly = () => Boolean(serverLocked && !adminToken);
+
+function applyReadOnly() {
+  const locked = isReadOnly();
+  document.documentElement.classList.toggle("read-only", locked);
+  const controls = $$("#cmdForm input, #cmdForm button, #examples button, #customers [data-act], #panel-mostrador input, #panel-mostrador button, #seedBtn, #resetBtn, #modalBody button, #modalBody input, #modalBody textarea");
+  for (const el of controls) {
+    if ("disabled" in el) {
+      if (locked) {
+        if (!("readOnlyDisabled" in el.dataset)) el.dataset.readOnlyDisabled = String(el.disabled);
+        el.disabled = true;
+      } else if ("readOnlyDisabled" in el.dataset) {
+        el.disabled = el.dataset.readOnlyDisabled === "true";
+        delete el.dataset.readOnlyDisabled;
+      }
+    } else {
+      el.classList.toggle("readonly-disabled", locked);
+      if (locked) el.setAttribute("aria-disabled", "true");
+      else el.removeAttribute("aria-disabled");
+    }
+  }
+  for (const input of [$("#photoInput"), $("#photoInput2")]) {
+    const label = input?.closest("label");
+    label?.classList.toggle("readonly-disabled", locked);
+    if (locked) label?.setAttribute("aria-disabled", "true");
+    else label?.removeAttribute("aria-disabled");
+  }
+  const storeName = $("#storeName");
+  storeName?.classList.toggle("readonly-disabled", locked);
+  if (locked) storeName?.setAttribute("aria-disabled", "true");
+  else storeName?.removeAttribute("aria-disabled");
+}
+
+function showError(err) {
+  toast(err?.status === 401 ? "Modo solo lectura" : err?.message || "Ocurrió un error", "err");
+}
+
 async function api(path, body, method) {
+  const headers = body ? { "Content-Type": "application/json" } : {};
+  if (adminToken) headers["x-admin-token"] = adminToken;
   const res = await fetch(path, {
     method: method || (body ? "POST" : "GET"),
-    headers: body ? { "Content-Type": "application/json" } : {},
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+  if (!res.ok) {
+    if (res.status === 401) {
+      serverLocked = true;
+      applyReadOnly();
+    }
+    const err = new Error(res.status === 401 ? "Modo solo lectura" : data.message || `Error ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
   return data;
 }
 
@@ -34,6 +99,7 @@ async function api(path, body, method) {
 function render(s) {
   const prev = state;
   state = s;
+  serverLocked = Boolean(s.mode?.locked);
   $("#storeName").textContent = `${s.store.name} · ${s.store.owner}`;
   bumpIfChanged("#stPorCobrar", money(s.totals.porCobrar));
   bumpIfChanged("#stCodi", money(s.totals.cobradoHoyCodi));
@@ -43,6 +109,7 @@ function render(s) {
   renderAgentConnect(s.mode);
   renderCustomers(s.customers, prev);
   renderFeed(s.feed);
+  applyReadOnly();
 }
 
 function bumpIfChanged(sel, text) {
@@ -59,6 +126,7 @@ function renderChips(m) {
   chips.push(m.pey === "live" ? `<span class="chip live"><span class="dot"></span>CoDi en vivo · pey</span>` : `<span class="chip demo"><span class="dot"></span>CoDi simulado</span>`);
   chips.push(m.ai ? `<span class="chip live"><span class="dot"></span>IA · ${esc(m.ai)}</span>` : `<span class="chip demo"><span class="dot"></span>IA local</span>`);
   if (m.testAmount) chips.push(`<span class="chip warn">Cobros de prueba: ${money(m.testAmount)}</span>`);
+  if (m.locked && !adminToken) chips.push(`<span class="chip warn">👀 Solo lectura</span>`);
   $("#modeChips").innerHTML = chips.join("");
 }
 
@@ -179,10 +247,12 @@ $("#cmdForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = $("#cmdInput").value.trim();
   if (!text) return;
+  if (isReadOnly()) return toast("Modo solo lectura", "err");
   await runCommand(text);
 });
 
 async function runCommand(text) {
+  if (isReadOnly()) return toast("Modo solo lectura", "err");
   const btn = $("#sendBtn");
   btn.disabled = true;
   btn.textContent = "Pensando…";
@@ -196,9 +266,9 @@ async function runCommand(text) {
     }`;
     if (r.charge) openCharge(r.charge);
   } catch (err) {
-    toast(err.message, "err");
+    showError(err);
   } finally {
-    btn.disabled = false;
+    btn.disabled = isReadOnly();
     btn.textContent = "Anotar";
   }
 }
@@ -208,6 +278,7 @@ const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (!SR) $("#micBtn").title = "Tu navegador no soporta dictado; usa Chrome";
 let rec = null;
 $("#micBtn").addEventListener("click", () => {
+  if (isReadOnly()) return toast("Modo solo lectura", "err");
   if (!SR) return toast("Dictado no disponible en este navegador. Usa Chrome.", "err");
   if (rec) return rec.stop();
   rec = new SR();
@@ -232,7 +303,10 @@ $("#micBtn").addEventListener("click", () => {
 });
 
 // ---------------- Foto de la libreta ----------------
-for (const inp of [$("#photoInput"), $("#photoInput2")]) inp.addEventListener("change", (e) => e.target.files[0] && handlePhoto(e.target.files[0], e.target));
+for (const inp of [$("#photoInput"), $("#photoInput2")]) inp.addEventListener("change", (e) => {
+  if (isReadOnly()) { e.target.value = ""; return toast("Modo solo lectura", "err"); }
+  if (e.target.files[0]) handlePhoto(e.target.files[0], e.target);
+});
 
 async function handlePhoto(file, input) {
   input.value = "";
@@ -242,7 +316,8 @@ async function handlePhoto(file, input) {
     const r = await api("/api/photo", { image: dataUrl });
     showPhotoPreview(dataUrl, r);
   } catch (err) {
-    showModal(`<h2 class="m-title">No pude leer la foto</h2><p class="m-sub">${esc(err.message)}</p>`);
+    if (err.status === 401) showError(err);
+    else showModal(`<h2 class="m-title">No pude leer la foto</h2><p class="m-sub">${esc(err.message)}</p>`);
   }
 }
 
@@ -272,7 +347,7 @@ function showPhotoPreview(dataUrl, r) {
       await api("/api/entries/bulk", { entries });
       closeModal();
       toast(`✓ ${entries.length} cuentas pasadas a la libreta`, "ok");
-    } catch (err) { toast(err.message, "err"); }
+    } catch (err) { showError(err); }
   };
 }
 
@@ -297,6 +372,7 @@ function compress(file, max, quality) {
 $("#customers").addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-act]");
   if (!btn) return;
+  if (isReadOnly()) return toast("Modo solo lectura", "err");
   const card = btn.closest(".card");
   const c = state.customers.find((x) => x.id === card.dataset.id);
   const act = btn.dataset.act;
@@ -309,17 +385,19 @@ $("#customers").addEventListener("click", async (e) => {
     }
     if (act === "whats") return reminder(c, btn);
     if (act === "cash") return cash(c);
-  } catch (err) { toast(err.message, "err"); }
+  } catch (err) { showError(err); }
 });
 
 async function withBusy(btn, fn) {
   const t = btn.innerHTML;
+  const wasDisabled = btn.disabled;
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner"></span>`;
-  try { return await fn(); } finally { btn.disabled = false; btn.innerHTML = t; }
+  try { return await fn(); } finally { btn.disabled = wasDisabled || isReadOnly(); btn.innerHTML = t; }
 }
 
 function editPhone(c, thenPush = false) {
+  if (isReadOnly()) return toast("Modo solo lectura", "err");
   showModal(`<h2 class="m-title">Celular de ${esc(c.name)}</h2><p class="m-sub">El que tiene ligado a CoDi en la app de su banco. 10 dígitos.</p>
     <input id="phoneIn" inputmode="numeric" maxlength="14" value="${esc(c.phone || "")}" class="pos-concept" style="font-size:22px;text-align:center" placeholder="55 1234 5678">
     <button class="btn primary wide" id="phoneSave">${thenPush ? "Guardar y mandar cobro" : "Guardar"}</button>`);
@@ -329,7 +407,7 @@ function editPhone(c, thenPush = false) {
       await api(`/api/customers/${c.id}`, { phone: $("#phoneIn").value }, "PATCH");
       if (thenPush) openCharge((await api(`/api/customers/${c.id}/charge`, { method: "push" })).charge);
       else closeModal();
-    } catch (err) { toast(err.message, "err"); }
+    } catch (err) { showError(err); }
   };
 }
 
@@ -339,7 +417,7 @@ function cash(c) {
     <button class="btn primary wide" id="cashSave">Anotar abono</button>`);
   $("#cashIn").select();
   $("#cashSave").onclick = async () => {
-    try { await api(`/api/customers/${c.id}/cash`, { amount: Number($("#cashIn").value) }); closeModal(); toast("Abono anotado", "ok"); } catch (err) { toast(err.message, "err"); }
+    try { await api(`/api/customers/${c.id}/cash`, { amount: Number($("#cashIn").value) }); closeModal(); toast("Abono anotado", "ok"); } catch (err) { showError(err); }
   };
 }
 
@@ -376,7 +454,7 @@ function openCharge(ch) {
     body = `<p class="qr-amount">${money(ch.amount)}</p><p class="qr-help"><a href="${esc(ch.url)}" target="_blank">${esc(ch.url)}</a></p><div class="qr-wrap" id="qrWrap" style="min-height:10px"></div>`;
   }
   showModal(`${body}${test}<div class="waiting" id="waiting"><span class="spinner"></span>Esperando pago…</div><div class="row">${sim}</div>`);
-  $("#simBtn")?.addEventListener("click", () => api(`/api/charges/${ch.id}/simulate`, {}).catch((e) => toast(e.message, "err")));
+  $("#simBtn")?.addEventListener("click", () => api(`/api/charges/${ch.id}/simulate`, {}).catch(showError));
   clearInterval(pollTimer);
   pollTimer = setInterval(async () => {
     if (!openChargeId) return clearInterval(pollTimer);
@@ -409,6 +487,7 @@ function onPaid(ch) {
 let posValue = "";
 $("#keypad").innerHTML = ["1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "0", "⌫"].map((k) => `<button>${k}</button>`).join("");
 $("#keypad").addEventListener("click", (e) => {
+  if (isReadOnly()) return toast("Modo solo lectura", "err");
   const k = e.target.textContent;
   if (e.target.tagName !== "BUTTON") return;
   if (k === "⌫") posValue = posValue.slice(0, -1);
@@ -418,6 +497,7 @@ $("#keypad").addEventListener("click", (e) => {
   $("#posDisplay").textContent = "$" + (posValue || "0");
 });
 $("#posCharge").addEventListener("click", async () => {
+  if (isReadOnly()) return toast("Modo solo lectura", "err");
   const amount = Number(posValue);
   if (!amount) return toast("Escribe el monto", "err");
   const concept = $("#posConcept").value.trim();
@@ -425,7 +505,7 @@ $("#posCharge").addEventListener("click", async () => {
     const r = await withBusy($("#posCharge"), () => api("/api/command", { text: `Cóbrame ${amount} de ${concept || "venta"} en mostrador` }));
     if (r.charge) { openCharge(r.charge); posValue = ""; $("#posDisplay").textContent = "$0"; $("#posConcept").value = ""; }
     else toast(r.results?.[0]?.text || "No se pudo", "err");
-  } catch (err) { toast(err.message, "err"); }
+  } catch (err) { showError(err); }
 });
 
 // ---------------- Tabs, misc ----------------
@@ -454,26 +534,28 @@ $$('[data-copy]').forEach((button) => button.addEventListener("click", async () 
     toast("Cópialo con Ctrl+C");
   }
 }));
-$("#seedBtn").addEventListener("click", () => api("/api/demo/seed", {}).catch((e) => toast(e.message, "err")));
+$("#seedBtn").addEventListener("click", () => api("/api/demo/seed", {}).catch(showError));
 $("#resetBtn").addEventListener("click", () => confirmModal("¿Borrar toda la libreta?", () => api("/api/demo/reset", {})));
 $("#storeName").addEventListener("click", () => {
+  if (isReadOnly()) return toast("Modo solo lectura", "err");
   showModal(`<h2 class="m-title">Tu tienda</h2>
     <input id="stName" class="pos-concept" value="${esc(state.store.name)}" placeholder="Nombre de la tienda">
     <input id="stOwner" class="pos-concept" value="${esc(state.store.owner)}" placeholder="Tu nombre">
     <button class="btn primary wide" id="stSave">Guardar</button>`);
-  $("#stSave").onclick = () => api("/api/store", { name: $("#stName").value, owner: $("#stOwner").value }).then(closeModal);
+  $("#stSave").onclick = () => api("/api/store", { name: $("#stName").value, owner: $("#stOwner").value }).then(closeModal).catch(showError);
 });
 
 function confirmModal(text, fn) {
   showModal(`<h2 class="m-title">${esc(text)}</h2><div class="actions" style="margin-top:16px"><button class="btn" id="cNo">Cancelar</button><button class="btn primary" id="cYes">Sí</button></div>`);
   $("#cNo").onclick = closeModal;
-  $("#cYes").onclick = () => { fn(); closeModal(); };
+  $("#cYes").onclick = () => { Promise.resolve(fn()).catch(showError); closeModal(); };
 }
 
 function showModal(html, wide = false) {
   $("#modalBody").innerHTML = html;
   $(".sheet").classList.toggle("wide", wide);
   $("#modal").hidden = false;
+  applyReadOnly();
 }
 function closeModal() {
   $("#modal").hidden = true;
@@ -554,6 +636,7 @@ function connect() {
   es.onerror = () => { es.close(); setTimeout(connect, 2000); };
 }
 renderAgentConnect();
+applyReadOnly();
 loadAgentCharges();
 api("/api/state").then(render).catch(() => {});
 connect();
