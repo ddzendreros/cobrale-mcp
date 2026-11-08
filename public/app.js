@@ -502,9 +502,8 @@ $("#posCharge").addEventListener("click", async () => {
   if (!amount) return toast("Escribe el monto", "err");
   const concept = $("#posConcept").value.trim();
   try {
-    const r = await withBusy($("#posCharge"), () => api("/api/command", { text: `Cóbrame ${amount} de ${concept || "venta"} en mostrador` }));
-    if (r.charge) { openCharge(r.charge); posValue = ""; $("#posDisplay").textContent = "$0"; $("#posConcept").value = ""; }
-    else toast(r.results?.[0]?.text || "No se pudo", "err");
+    const r = await withBusy($("#posCharge"), () => api("/api/sale", { amount, concept }));
+    openCharge(r.charge); posValue = ""; $("#posDisplay").textContent = "$0"; $("#posConcept").value = "";
   } catch (err) { showError(err); }
 });
 

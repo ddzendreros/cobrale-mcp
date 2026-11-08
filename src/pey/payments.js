@@ -152,6 +152,9 @@ function findChargeFor(evt, allowAmountOnly = true) {
   const transactionMetadata = evt.transactions?.[0]?.metadata;
   const transactionExt = { ...(transactionMetadata || {}), ...(transactionMetadata?.externalMetadata || {}) };
   const by = (fn) => store.getDb().charges.find((c) => c.status !== "paid" && (!paidAtMs || paidAtMs >= c.createdAt - 120_000) && fn(c));
+  // Si el pago trae nuestra referencia y no casó por identificador, es de otro cobro (ya pagado o borrado):
+  // no adivinar por numRef ni por monto, que con PEY_TEST_AMOUNT es igual para todos.
+  const ownRef = Boolean(ext.chargeId || transactionExt.chargeId || evt.clientReferenceId);
   return (
     (ext.chargeId && by((c) => c.id === ext.chargeId)) ||
     (transactionExt.chargeId && by((c) => c.id === transactionExt.chargeId)) ||
@@ -160,8 +163,8 @@ function findChargeFor(evt, allowAmountOnly = true) {
     (evt.codiQrId && by((c) => c.peyId === evt.codiQrId)) ||
     (evt.payableId && by((c) => c.peyId === evt.payableId || c.peyTx === evt.payableId)) ||
     (evt.transactionId && by((c) => c.peyTx === evt.transactionId)) ||
-    (evt.numRef && by((c) => c.numRef === String(evt.numRef) && Math.abs(c.chargedAmount - Number(evt.amount)) < 0.005)) ||
-    (allowAmountOnly ? uniquePendingByAmount(Number(evt.amount), paidAtMs) : null)
+    (!ownRef && evt.numRef && by((c) => c.numRef === String(evt.numRef) && Math.abs(c.chargedAmount - Number(evt.amount)) < 0.005)) ||
+    (!ownRef && allowAmountOnly ? uniquePendingByAmount(Number(evt.amount), paidAtMs) : null)
   );
 }
 

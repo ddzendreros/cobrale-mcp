@@ -181,6 +181,12 @@ async function runChecks(state) {
   assert.equal(sale45.charge?.amount, 45, "La venta de tortillas debe ser por $45");
   check("el comando de mostrador crea un QR por $45");
 
+  const keypadSale = await postJson(state.baseUrl, "/api/sale", { amount: 45, concept: "coca de 600" });
+  assert.equal(keypadSale.charge?.kind, "qr", "El teclado de mostrador debe crear un QR");
+  assert.equal(keypadSale.charge?.amount, 45, "El teclado debe cobrar el monto tecleado aunque el concepto traiga números");
+  assert.equal(keypadSale.charge?.concept, "Mostrador coca de 600", "El concepto del teclado debe conservarse");
+  check("el teclado de mostrador cobra $45 aunque el concepto diga 'coca de 600'");
+
   const photo = await postJson(state.baseUrl, "/api/photo", { image: "data:image/jpeg;base64,AAAA" });
   assert.equal(photo.entries?.length, 4, "La foto demo debe regresar cuatro apuntes");
   check("la foto de libreta regresa cuatro apuntes en modo demo");
@@ -306,6 +312,20 @@ async function runChecks(state) {
   assert.equal(secondTenAfter.charge?.status, "pending", "El segundo cobro de $10 debe seguir pendiente");
   check("QR, push y link casan por los identificadores de pey; un webhook repetido no paga otro cobro del mismo monto");
 
+  const onlyPending77 = await postJson(state.baseUrl, "/api/sale", { amount: 77, concept: "prueba de monto único" });
+  const foreignRefResult = await sendSignedWebhook(state, {
+    type: "codi.qr.payment_received",
+    amount: 77,
+    codiQrId: "qr_de_otro_cobro",
+    transactionId: "tx_smoke_foreign_ref",
+    datePaid: Math.floor(Date.now() / 1000),
+    metadata: { externalMetadata: { chargeId: "cob_borrado" } },
+  }, "wh_smoke_foreign_ref");
+  assert.match(String(foreignRefResult.result || ""), /sin asignar/i, "Un pago con chargeId desconocido no debe casar por monto");
+  const onlyPending77After = await requestJson(state.baseUrl, `/api/charges/${encodeURIComponent(onlyPending77.charge.id)}`);
+  assert.equal(onlyPending77After.charge?.status, "pending", "El único cobro de $77 debe seguir pendiente");
+  check("un pago con chargeId desconocido queda sin asignar y no paga el único cobro del mismo monto");
+
   const { cancelledCobroId } = await runMcpChecks(new URL("/mcp", state.baseUrl).href, { token: "" });
   check("smoke MCP verifica las siete herramientas, cancelar_cobro, espera inmediata y pagos de hoy");
 
@@ -321,6 +341,14 @@ async function runChecks(state) {
   const paidAfterCancelState = await requestJson(state.baseUrl, `/api/charges/${encodeURIComponent(cancelledCobroId)}`);
   assert.equal(paidAfterCancelState.charge?.status, "paid", "El pago debe cambiar el cobro cancelado a paid");
   check("un webhook válido registra el pago aunque el cobro se hubiera cancelado en Cóbrale");
+
+  await postJson(state.baseUrl, "/api/demo/reset", {});
+  const afterReset33 = await postJson(state.baseUrl, "/api/sale", { amount: 33, concept: "después de borrar todo" });
+  const retryAfterReset = await sendSignedWebhook(state, signedEvent, webhookId);
+  assert.match(String(retryAfterReset.result || ""), /duplicado/i, "Un reintento de pey tras 'Borrar todo' debe seguir siendo duplicado");
+  const afterReset33State = await requestJson(state.baseUrl, `/api/charges/${encodeURIComponent(afterReset33.charge.id)}`);
+  assert.equal(afterReset33State.charge?.status, "pending", "El cobro nuevo de $33 no debe pagarse con un reintento viejo");
+  check("después de 'Borrar todo', un reintento viejo de pey sigue siendo duplicado y no paga el cobro nuevo");
 
   const tests = findTests(path.join(projectRoot, "src"));
   if (tests.length) {

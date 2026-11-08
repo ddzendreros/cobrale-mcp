@@ -36,7 +36,8 @@ export function save() {
 export const getDb = () => db;
 /** Borra los datos de Libreta (clientes/movimientos) y, si full=true, también los cobros. */
 export function reset({ full = false } = {}) {
-  const keep = full ? {} : { charges: db.charges, orphanPayments: db.orphanPayments, seenWebhooks: db.seenWebhooks, counter: db.counter };
+  // seenWebhooks y counter sobreviven a "Borrar todo": un reintento viejo de pey sigue siendo duplicado.
+  const keep = full ? { seenWebhooks: db.seenWebhooks, counter: db.counter } : { charges: db.charges, orphanPayments: db.orphanPayments, seenWebhooks: db.seenWebhooks, counter: db.counter };
   db = { ...empty(), store: db.store, ...keep };
   save();
 }

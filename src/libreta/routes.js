@@ -145,6 +145,15 @@ router.post("/api/photo", wrap(async (req, res) => {
   res.json(await ai.parseNotebookPhoto(image, store.getDb().customers.map((c) => c.name)));
 }));
 
+// Venta de mostrador desde el teclado: el monto tecleado va directo al cobro, sin pasar por el parser.
+router.post("/api/sale", wrap(async (req, res) => {
+  const amount = Number(req.body?.amount);
+  if (!Number.isFinite(amount) || amount <= 0) throw httpErr(400, "Escribe el monto");
+  const items = String(req.body?.concept || "").trim().slice(0, 60);
+  const ch = await payments.createCharge({ kind: "qr", amount, source: "libreta", concept: items ? `Mostrador ${items}` : "Venta mostrador" });
+  res.json({ charge: payments.toPublic(ch) });
+}));
+
 router.post("/api/entries/bulk", wrap(async (req, res) => {
   const entries = Array.isArray(req.body?.entries) ? req.body.entries : [];
   res.json(await runActions(entries.filter((e) => e.customer && Number(e.amount) > 0).map((e) => ({ type: "add_debt", customer: e.customer, amount: Number(e.amount), items: e.items || "", phone: e.phone || null }))));
