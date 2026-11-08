@@ -8,6 +8,7 @@
     "dev": "node --watch src/server.js",
     "check": "node scripts/check.js",
     "test:mcp": "node scripts/test-mcp.js",
+    "test": "node scripts/smoke.js",
     "agente": "node examples/agente-empresa/agente.js"
   },
   "license": "MIT",
