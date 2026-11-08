@@ -74,8 +74,26 @@ export function buildServer() {
   }, async ({ cobro_id, segundos }) => {
     try {
       const c = await payments.waitForPayment(cobro_id, (segundos || 50) * 1000);
-      return ok(c.status === "paid" ? `✅ ¡Pagado! ${money(c.amount)} recibidos.` : `Aún no se paga (estado: ${c.status}). Puedes volver a esperar.`, summary(c));
+      const message = c.status === "paid"
+        ? `✅ ¡Pagado! ${money(c.amount)} recibidos.`
+        : c.status === "superseded"
+          ? "El cobro fue cancelado."
+          : `Aún no se paga (estado: ${c.status}). Puedes volver a esperar.`;
+      return ok(message, summary(c));
     } catch (e) { return fail(e); }
+  });
+
+  server.registerTool("cancelar_cobro", {
+    title: "Cancelar un cobro",
+    description: "Cancela el cobro en Cóbrale. Si aun así lo pagan antes de que expire, el pago se registra.",
+    inputSchema: { cobro_id: z.string() },
+  }, async ({ cobro_id }) => {
+    const c = payments.getCharge(cobro_id);
+    if (!c) return fail(new payments.ChargeError("No existe ese cobro", 404));
+    if (c.status === "paid") return fail(new payments.ChargeError("Ese cobro ya está pagado; no se puede cancelar", 409));
+    if (c.status === "pending") payments.supersede(cobro_id);
+    const updated = payments.getCharge(cobro_id);
+    return ok(updated.status === "superseded" ? "Cobro cancelado en Cóbrale." : `Estado del cobro: ${updated.status}.`, summary(updated));
   });
 
   server.registerTool("estado_del_cobro", {
@@ -97,6 +115,20 @@ export function buildServer() {
     const list = payments.listCharges({ status: "paid", sinceMs: Date.now() - (ultimos_minutos || 1440) * 60_000, limit: limite || 20 }).map(summary);
     const total = list.reduce((s, c) => s + c.monto, 0);
     return ok(`${list.length} pagos, total ${money(total)}`, { total, pagos: list });
+  });
+
+  server.registerResource("pagos-hoy", "cobrale://pagos/hoy", {
+    title: "Pagos recibidos hoy",
+    description: "Pagos confirmados desde la medianoche local, con el total del día.",
+    mimeType: "application/json",
+  }, async (uri) => {
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const pagos = payments.listCharges({ status: "paid", sinceMs: midnight }).map(summary);
+    const total = Number(pagos.reduce((sum, pago) => sum + pago.monto, 0).toFixed(2));
+    const fecha = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const text = JSON.stringify({ fecha, total, pagos });
+    return { contents: [{ uri: uri.href, mimeType: "application/json", text }] };
   });
 
   return server;

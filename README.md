@@ -95,6 +95,9 @@ codex mcp add cobrale --url http://localhost:3000/mcp
 | `esperar_pago` | Espera a que llegue el pago (hasta 280 s por llamada) |
 | `estado_del_cobro` | `pending`, `paid` o `superseded` |
 | `pagos_recibidos` | Pagos de una ventana de tiempo, para conciliar |
+| `cancelar_cobro` | Cancela el cobro en Cóbrale; si aun así lo pagan antes de que expire, el pago se registra |
+
+El resource MCP `cobrale://pagos/hoy` comparte `{ fecha, total, pagos }` con los pagos recibidos desde la medianoche local.
 
 Con la Responses API de OpenAI, el agente de cobranza de cualquier empresa se conecta así ([ejemplo completo](examples/agente-empresa/agente.js)):
 
@@ -207,7 +210,7 @@ Cada cobro manda `metadata.chargeId` para asociar el pago aunque cambie el `numR
 ```
 src/server.js        un solo proceso: webhook, /mcp, Libreta y páginas públicas
 src/pey/             cliente de pey y núcleo de cobros (webhooks, conciliación, eventos)
-src/mcp/             servidor MCP con las 6 herramientas
+src/mcp/             servidor MCP con las 7 herramientas y el resource de pagos de hoy
 src/libreta/         rutas, ledger del fiado y comandos en lenguaje natural
 public/              interfaz de Libreta (JavaScript sin build)
 examples/            agente de cobranza para empresas

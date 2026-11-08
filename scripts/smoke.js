@@ -1,4 +1,4 @@
-// Gate de integración en demo: inicia un server aislado y verifica Libreta, webhooks y MCP.
+// Gate de integración en demo: inicia un server aislado y verifica Libreta, webhooks, MCP y cancelación.
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -306,7 +306,21 @@ async function runChecks(state) {
   assert.equal(secondTenAfter.charge?.status, "pending", "El segundo cobro de $10 debe seguir pendiente");
   check("QR, push y link casan por los identificadores de pey; un webhook repetido no paga otro cobro del mismo monto");
 
-  await runMcpChecks(new URL("/mcp", state.baseUrl).href, { token: "" });
+  const { cancelledCobroId } = await runMcpChecks(new URL("/mcp", state.baseUrl).href, { token: "" });
+  check("smoke MCP verifica las siete herramientas, cancelar_cobro, espera inmediata y pagos de hoy");
+
+  const cancelledCharge = await chargeFromTemporaryDb(state, cancelledCobroId);
+  const paidAfterCancel = await sendSignedWebhook(state, {
+    type: "codi.qr.payment_received",
+    amount: cancelledCharge.chargedAmount,
+    codiQrId: cancelledCharge.peyId,
+    transactionId: "tx_smoke_paid_after_cancel",
+    datePaid: Math.floor(Date.now() / 1000),
+  }, "wh_smoke_paid_after_cancel");
+  assert.match(String(paidAfterCancel.result || ""), /^pagado/i, "El pago recibido después de cancelar debe registrarse");
+  const paidAfterCancelState = await requestJson(state.baseUrl, `/api/charges/${encodeURIComponent(cancelledCobroId)}`);
+  assert.equal(paidAfterCancelState.charge?.status, "paid", "El pago debe cambiar el cobro cancelado a paid");
+  check("un webhook válido registra el pago aunque el cobro se hubiera cancelado en Cóbrale");
 
   const tests = findTests(path.join(projectRoot, "src"));
   if (tests.length) {

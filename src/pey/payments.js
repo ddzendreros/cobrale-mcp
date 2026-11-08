@@ -93,19 +93,25 @@ export function listCharges({ status, sinceMs, source, limit = 50 } = {}) {
 export function waitForPayment(chargeId, timeoutMs = 55_000) {
   const c = getCharge(chargeId);
   if (!c) return Promise.reject(new ChargeError("No existe ese cobro", 404));
-  if (c.status === "paid") return Promise.resolve(c);
+  if (c.status === "paid" || c.status === "superseded") return Promise.resolve(c);
   return new Promise((resolve) => {
     const onPaid = (paid) => { if (paid.id === chargeId) done(paid); };
+    const onSuperseded = (superseded) => { if (superseded.id === chargeId) done(superseded); };
     const t = setTimeout(() => done(getCharge(chargeId)), timeoutMs);
-    function done(x) { clearTimeout(t); events.off("paid", onPaid); resolve(x); }
+    function done(x) { clearTimeout(t); events.off("paid", onPaid); events.off("superseded", onSuperseded); resolve(x); }
     events.on("paid", onPaid);
+    events.on("superseded", onSuperseded);
   });
 }
 
 /** Marca un cobro como sustituido (p. ej. Libreta lo hace si el cliente pagó por otro medio). */
 export function supersede(chargeId) {
   const c = getCharge(chargeId);
-  if (c && c.status === "pending") { c.status = "superseded"; store.save(); }
+  if (c && c.status === "pending") {
+    c.status = "superseded";
+    store.save();
+    events.emit("superseded", c);
+  }
 }
 
 // ---------------- Webhooks ----------------

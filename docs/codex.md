@@ -28,7 +28,7 @@ args = ["-y", "mcp-remote", "http://localhost:3000/mcp"]
 tool_timeout_sec = 300
 ```
 
-Verifica con `/mcp` dentro de Codex: deben aparecer 6 herramientas.
+Verifica con `/mcp` dentro de Codex: deben aparecer 7 herramientas.
 
 Prompt de demo:
 
@@ -56,3 +56,8 @@ Cualquier cliente con Streamable HTTP apunta a `/mcp`. Para clientes solo-stdio:
 | `esperar_pago` | Bloquea hasta que llega el webhook de pago (máx. 280 s por llamada) |
 | `estado_del_cobro` | pending / paid / superseded |
 | `pagos_recibidos` | Pagos de la ventana de tiempo, para conciliar |
+| `cancelar_cobro` | Cancela en Cóbrale; si aun así lo pagan antes de que expire, el pago se registra |
+
+## Resource de pagos de hoy
+
+El resource `cobrale://pagos/hoy` (nombre `pagos-hoy`, tipo `application/json`) devuelve `{ fecha, total, pagos }` con los pagos desde la medianoche local. Cada elemento de `pagos` tiene el mismo resumen que las herramientas de cobro.
