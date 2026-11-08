@@ -15,18 +15,20 @@ y se entera en segundos cuando le pagan. Sin comisión y sin efectivo.
 ![OpenAI](https://img.shields.io/badge/OpenAI-Responses%20API-412991)
 ![Licencia](https://img.shields.io/badge/licencia-MIT-2563EB)
 
-**▶ En vivo: [cobrale-mcp-production.up.railway.app](https://cobrale-mcp-production.up.railway.app)** · [Landing para agentes](https://cobrale-mcp-production.up.railway.app/agentes)
+<br/>
+
+[![Probar en vivo](https://img.shields.io/badge/%E2%96%B6%20Probar%20en%20vivo-cobra%20%240.01%20real-0B7A4B?style=for-the-badge)](https://cobrale-mcp-production.up.railway.app)
+[![Landing para agentes](https://img.shields.io/badge/%F0%9F%A4%96%20Para%20agentes-conecta%20tu%20MCP-111827?style=for-the-badge)](https://cobrale-mcp-production.up.railway.app/agentes)
+[![Conectar Codex](https://img.shields.io/badge/Codex-1%20comando-412991?style=for-the-badge)](#conecta-tu-agente-en-30-segundos)
 
 [Pruébalo](#pruébalo-en-vivo) · [Cómo funciona](#cómo-funciona) · [Para empresas](#para-empresas-cóbrale-mcp) · [Para tienditas](#para-tienditas-libreta) · [Correr en 1 minuto](#correr-en-1-minuto) · [Equipo](#equipo)
 
 <br/>
 
-<img src="docs/img/libreta.png" alt="Libreta: cuentas del fiado con botones para cobrar con CoDi" width="860"/>
-
 <table>
   <tr>
-    <td align="center" width="50%"><img src="docs/img/cobro-qr.png" alt="Cobro con QR CoDi esperando pago" width="380"/><br/><sub><b>1.</b> Se genera el cobro CoDi</sub></td>
-    <td align="center" width="50%"><img src="docs/img/pagado.png" alt="Pago recibido en tiempo real" width="380"/><br/><sub><b>2.</b> El webhook de pey lo marca pagado al instante</sub></td>
+    <td align="center" width="36%"><img src="docs/img/demo-cobro.gif" alt="Demo: se dicta 'Cóbrale a Doña Mary', sale el QR CoDi y en segundos dice ¡Pagado!" width="280"/><br/><sub><i>"Cóbrale a Doña Mary" → QR CoDi → ¡Pagado!</i></sub></td>
+    <td align="center"><img src="docs/img/libreta.png" alt="Libreta: cuentas del fiado con botones para cobrar con CoDi" width="560"/><br/><sub>La Libreta: el fiado de la tiendita, cobrable con CoDi</sub></td>
   </tr>
 </table>
 
@@ -36,18 +38,58 @@ y se entera en segundos cuando le pagan. Sin comisión y sin efectivo.
 
 ## Pruébalo en vivo
 
-El deploy cobra **con CoDi de verdad**: no es una maqueta.
+> [!TIP]
+> **Ruta de 2 minutos para evaluar.** El deploy cobra **con CoDi de verdad**: no es una maqueta.
 
-1. Abre **[cobrale-mcp-production.up.railway.app](https://cobrale-mcp-production.up.railway.app)** en la compu.
-2. Escribe o dicta *"Cóbrame 5 de prueba"* (o apúntale algo a un cliente y dale **Cobrar**). Aparece un QR CoDi.
-3. Escanéalo con la app de tu banco (CoDi → *Escanear QR*) y paga.
-4. En segundos la pantalla cambia a **¡Pagado!**: el webhook firmado de pey llegó al servidor y descontó la cuenta. No hay que tocar nada.
+- [ ] Abre **[cobrale-mcp-production.up.railway.app](https://cobrale-mcp-production.up.railway.app)** en la compu.
+- [ ] Escribe o dicta *"Cóbrame 5 de prueba"* (o dale **Cobrar** a un cliente). Aparece un **QR CoDi**.
+- [ ] Escanéalo con la app de tu banco (CoDi → *Escanear QR*) y paga.
+- [ ] Mira la pantalla: en segundos cambia a **¡Pagado!** sin tocar nada.
+- [ ] Abre la pestaña **Agentes**: ahí aparecen en vivo los cobros que crean los agentes por MCP.
 
-> **Importante:** cualquier monto se cobra como **$0.01 MXN** (`PEY_TEST_AMOUNT`). El centavo cae en una CLABE de prueba que pey habilitó para el hackathon, porque dar de alta una cuenta propia ante Banxico tarda unos cinco días. Con la cuenta del tendero activa, el mismo código cobra el monto real.
+> [!IMPORTANT]
+> Cualquier monto se cobra como **$0.01 MXN** (`PEY_TEST_AMOUNT`). El centavo cae en una CLABE de prueba que pey habilitó para el hackathon, porque dar de alta una cuenta propia ante Banxico tarda unos cinco días. Con la cuenta del tendero activa, el mismo código cobra el monto real.
 
-Probado el 8 de noviembre de 2026: un pago QR CoDi de $0.01 desde una app bancaria se marcó como pagado en la Libreta en el mismo segundo, por webhook con firma verificada.
+<details>
+<summary><b>¿Qué pasó por dentro cuando pagaste?</b></summary>
 
-El botón *Simular pago* sigue disponible como plan B si el wifi falla; los pagos reales nunca lo necesitan.
+1. La Libreta llamó a `POST /codi/qr` de pey con `metadata.chargeId`.
+2. Tu banco liquidó el pago por CoDi (Banxico).
+3. pey mandó el webhook `codi.qr.payment_received` a `/webhooks/pey`, firmado con Standard Webhooks.
+4. Cóbrale verificó la firma, asoció el pago al cobro y emitió `paid`.
+5. La Libreta lo recibió por SSE (`/api/events`) y descontó la cuenta. Si el webhook no llega, una conciliación con `GET /transaction/api-key` lo encuentra en ≤12 s.
+
+Probado el 8 de noviembre de 2026: un pago QR CoDi de $0.01 desde una app bancaria se marcó como pagado en el mismo segundo, con firma verificada.
+
+</details>
+
+<details>
+<summary><b>¿Y si el wifi del evento falla?</b></summary>
+
+El botón *Simular pago* sigue disponible como plan B y todo corre en modo demo sin keys. Los pagos reales nunca lo necesitan.
+
+</details>
+
+### Conecta tu agente en 30 segundos
+
+```bash
+# local, en modo demo (sin keys ni token)
+npm install && npm start
+codex mcp add cobrale --url http://localhost:3000/mcp
+```
+
+Luego, en Codex: *"Cóbrale $5 al 55XXXXXXXX por la factura FAC-001 y avísame cuando pague."* El agente crea el cobro, llama `esperar_pago` y te responde en cuanto entra el dinero.
+
+<details>
+<summary><b>Contra el deploy en vivo (cobros reales, pide token)</b></summary>
+
+```bash
+codex mcp add cobrale --url https://cobrale-mcp-production.up.railway.app/mcp --bearer-token-env-var PEY_MCP_TOKEN
+```
+
+El token protege `/mcp` porque crea cobros reales. Más clientes en [docs/codex.md](docs/codex.md).
+
+</details>
 
 ## El problema
 
