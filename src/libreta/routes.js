@@ -9,7 +9,14 @@ export const router = express.Router();
 
 // ---------------- Tiempo real ----------------
 const clients = new Set();
-const publicState = () => ({ ...ledger.snapshot(), mode: { ...payments.mode(), ai: ai.currentModel() } });
+const publicState = () => ({
+  ...ledger.snapshot(),
+  mode: {
+    ...payments.mode(),
+    ai: ai.currentModel(),
+    mcp: { url: `${payments.baseUrl()}/mcp`, auth: Boolean(process.env.PEY_MCP_TOKEN) },
+  },
+});
 function broadcast(type, payload = {}) {
   const data = JSON.stringify({ type, ...payload, state: publicState() });
   for (const res of clients) res.write(`data: ${data}\n\n`);
@@ -26,6 +33,7 @@ payments.events.on("paid", (c) => {
   broadcast("paid", { charge: payments.toPublic(c) });
 });
 payments.events.on("charge", (c) => broadcast("charge_created", { charge: payments.toPublic(c) }));
+payments.events.on("superseded", (c) => broadcast("charge_updated", { charge: payments.toPublic(c) }));
 payments.events.on("orphan", (o) => broadcast("orphan_payment", { amount: o.amount }));
 
 // ---------------- Helpers ----------------
@@ -100,6 +108,21 @@ router.get("/api/events", (req, res) => {
   res.write(`data: ${JSON.stringify({ type: "hello", state: publicState() })}\n\n`);
   clients.add(res);
   req.on("close", () => clients.delete(res));
+});
+
+router.get("/api/charges", (req, res) => {
+  const source = typeof req.query.source === "string" && req.query.source ? req.query.source : undefined;
+  const status = typeof req.query.status === "string" && req.query.status ? req.query.status : undefined;
+  const requestedLimit = req.query.limit;
+  const parsedLimit = Number(requestedLimit);
+  const limit = requestedLimit === undefined || requestedLimit === "" || !Number.isFinite(parsedLimit)
+    ? 30
+    : Math.max(1, Math.min(100, Math.floor(parsedLimit)));
+  const charges = payments.listCharges({ source, status, limit }).map((c) => {
+    const { qrSvg, ...charge } = payments.toPublic(c);
+    return charge;
+  });
+  res.json({ charges });
 });
 
 router.post("/api/command", wrap(async (req, res) => {

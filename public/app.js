@@ -16,6 +16,8 @@ const maskPhone = (p) => (p ? `${p.slice(0, 2)} •••• ${p.slice(-4)}` : "
 let state = null;
 let openChargeId = null;
 let pollTimer = null;
+let agentCharges = [];
+let agentBadgeCount = 0;
 
 async function api(path, body, method) {
   const res = await fetch(path, {
@@ -38,6 +40,7 @@ function render(s) {
   bumpIfChanged("#stCash", money(s.totals.cobradoHoyEfectivo));
   $("#stClientes").textContent = `${s.totals.clientesConDeuda} ${s.totals.clientesConDeuda === 1 ? "cliente" : "clientes"} con cuenta`;
   renderChips(s.mode);
+  renderAgentConnect(s.mode);
   renderCustomers(s.customers, prev);
   renderFeed(s.feed);
 }
@@ -93,6 +96,66 @@ function renderFeed(feed) {
         .map((f) => `<li><div><div><b>${esc(f.name)}</b></div><div class="f-sub">${f.type === "orphan" ? "Pago CoDi sin asignar" : "CoDi · " + ({ qr: "QR", push: "notificación", link: "link de pago", mcp: "agente vía MCP" }[f.via] || f.via)} · ${ago(f.at)}</div></div><div class="f-amt">+${money(f.amount)}</div></li>`)
         .join("")
     : `<li class="empty-feed">Aquí aparecen los pagos CoDi en cuanto llegan.</li>`;
+}
+
+function renderAgentConnect(mode = state?.mode) {
+  const url = mode?.mcp?.url || `${location.origin}/mcp`;
+  $("#agentMcpUrl").textContent = url;
+  $("#agentCodex").textContent = `codex mcp add cobrale --url ${url}`;
+  const authLine = mode?.mcp?.auth ? 'bearer_token_env_var = "PEY_MCP_TOKEN"\n' : "";
+  $("#agentToml").textContent = `[mcp_servers.cobrale]\nurl = "${url}"\ntool_timeout_sec = 300\n${authLine}`.trimEnd();
+  $("#agentResponses").textContent = `tools: [{ type: "mcp", server_label: "cobrale", server_url: "${url}", require_approval: "never" }]`;
+  $("#agentAuthNote").hidden = !mode?.mcp?.auth;
+}
+
+function renderAgentCharges(charges = agentCharges, { animateId = null, animateKind = "new" } = {}) {
+  $("#agentCharges").innerHTML = charges.map((c) => {
+    const kind = c.kind === "qr" ? "QR" : c.kind === "push" ? `Celular •••• ${(c.phone || "").slice(-4)}` : "Link";
+    const status = c.status === "paid"
+      ? ["paid", "✅ Pagado"]
+      : c.status === "superseded"
+        ? ["superseded", "Cancelado"]
+        : ["pending", "⏳ Esperando pago"];
+    const animation = c.id === animateId ? (animateKind === "paid" ? " agent-charge-flash" : " agent-charge-in") : "";
+    const href = c.payPage || `/cobro/${encodeURIComponent(c.id)}`;
+    return `<li class="agent-charge agent-charge-${status[0]}${animation}" data-charge-id="${esc(c.id)}">
+      <div class="agent-charge-head"><strong class="agent-charge-amount">${money(c.amount)}</strong><span class="agent-charge-kind">${esc(kind)}</span><span class="agent-charge-status">${status[1]}</span></div>
+      <div class="agent-charge-concept">${esc(c.concept || "Cobro CoDi")}</div>
+      <div class="agent-charge-meta"><span>Referencia: ${esc(c.reference || "—")}</span><time>${esc(ago(c.createdAt))}</time></div>
+      <a class="agent-charge-link" href="${esc(href)}" target="_blank" rel="noopener">Ver cobro ↗</a>
+    </li>`;
+  }).join("");
+  $("#agentEmpty").hidden = charges.length > 0;
+}
+
+function setAgentBadge(count) {
+  const badge = $("#agentBadge");
+  badge.textContent = count > 99 ? "99+" : String(count);
+  badge.hidden = count < 1;
+}
+
+function upsertAgentCharge(charge, { animateKind = "new" } = {}) {
+  if (!charge?.id) return false;
+  const index = agentCharges.findIndex((c) => c.id === charge.id);
+  const isNew = index < 0;
+  agentCharges = isNew
+    ? [charge, ...agentCharges]
+    : agentCharges.map((c) => c.id === charge.id ? { ...c, ...charge } : c);
+  agentCharges.sort((a, b) => (b.paidAt || b.createdAt) - (a.paidAt || a.createdAt));
+  renderAgentCharges(agentCharges, { animateId: isNew || animateKind === "paid" ? charge.id : null, animateKind });
+  if (isNew && !$(".tab[data-tab='agentes']").classList.contains("active")) {
+    agentBadgeCount++;
+    setAgentBadge(agentBadgeCount);
+  }
+  return isNew;
+}
+
+async function loadAgentCharges() {
+  try {
+    const result = await api("/api/charges?source=mcp");
+    agentCharges = Array.isArray(result.charges) ? result.charges : [];
+    renderAgentCharges();
+  } catch {}
 }
 
 // ---------------- Comandos ----------------
@@ -369,6 +432,27 @@ $("#posCharge").addEventListener("click", async () => {
 $$(".tab").forEach((t) => t.addEventListener("click", () => {
   $$(".tab").forEach((x) => x.classList.toggle("active", x === t));
   $$(".panel").forEach((p) => (p.hidden = p.id !== "panel-" + t.dataset.tab));
+  if (t.dataset.tab === "agentes") {
+    agentBadgeCount = 0;
+    setAgentBadge(agentBadgeCount);
+    loadAgentCharges();
+  }
+}));
+$$('[data-copy]').forEach((button) => button.addEventListener("click", async () => {
+  const target = $(button.dataset.copy);
+  if (!target) return;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard no disponible");
+    await navigator.clipboard.writeText(target.textContent.trim());
+    toast("Copiado al portapapeles", "ok");
+  } catch {
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(target);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    toast("Cópialo con Ctrl+C");
+  }
 }));
 $("#seedBtn").addEventListener("click", () => api("/api/demo/seed", {}).catch((e) => toast(e.message, "err")));
 $("#resetBtn").addEventListener("click", () => confirmModal("¿Borrar toda la libreta?", () => api("/api/demo/reset", {})));
@@ -454,10 +538,22 @@ function connect() {
   es.onmessage = (m) => {
     const ev = JSON.parse(m.data);
     if (ev.state) render(ev.state);
-    if (ev.type === "paid" && ev.charge) onPaid(ev.charge);
+    if (ev.type === "hello") loadAgentCharges();
+    if (ev.type === "charge_created" && ev.charge?.source === "mcp") {
+      if (upsertAgentCharge(ev.charge)) toast(`🤖 Un agente creó un cobro de ${money(ev.charge.amount)}`);
+    }
+    if (ev.type === "paid" && ev.charge) {
+      onPaid(ev.charge);
+      if (ev.charge.source === "mcp") upsertAgentCharge(ev.charge, { animateKind: "paid" });
+    }
+    if (ev.type === "charge_updated" && ev.charge?.source === "mcp") {
+      upsertAgentCharge(ev.charge, { animateKind: ev.charge.status === "paid" ? "paid" : "update" });
+    }
     if (ev.type === "orphan_payment") { chaChing(); toast(`💸 Llegó un pago CoDi de ${money(ev.amount)}`, "ok"); }
   };
   es.onerror = () => { es.close(); setTimeout(connect, 2000); };
 }
+renderAgentConnect();
+loadAgentCharges();
 api("/api/state").then(render).catch(() => {});
 connect();
