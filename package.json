@@ -9,6 +9,7 @@
     "check": "node scripts/check.js",
     "test:mcp": "node scripts/test-mcp.js",
     "test": "node scripts/smoke.js",
+    "pey:tx": "node scripts/pey-tx.js",
     "agente": "node examples/agente-empresa/agente.js"
   },
   "license": "MIT",
