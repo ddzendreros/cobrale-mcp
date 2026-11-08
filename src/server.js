@@ -3,6 +3,10 @@
 import "dotenv/config";
 import express from "express";
 import path from "node:path";
+import { webcrypto } from "node:crypto";
+
+// Node 18 no expone `crypto` global y el SDK de MCP lo usa (Railway arranca con Node 18).
+if (!globalThis.crypto) globalThis.crypto = webcrypto;
 import * as payments from "./pey/payments.js";
 import { router as libreta } from "./libreta/routes.js";
 import * as ai from "./libreta/ai.js";
@@ -56,7 +60,7 @@ app.listen(PORT, async () => {
   console.log(`   Libreta:  http://localhost:${PORT}/`);
   console.log(`   MCP:      ${m.publicUrl || `http://localhost:${PORT}`}/mcp ${process.env.PEY_MCP_TOKEN ? "(con token)" : "(sin token)"}`);
   console.log(`   pey:      ${m.pey === "live" ? "EN VIVO" : "DEMO simulado (sin PEY_API_KEY)"}`);
-  console.log(`   IA:       ${ai.currentModel() || "parser local (sin OPENAI_API_KEY)"}`);
+  console.log(`   IA:       ${ai.currentModel() || "parser local (sin ANTHROPIC_API_KEY ni OPENAI_API_KEY)"}`);
   console.log(`   Webhook:  ${m.publicUrl ? m.publicUrl + "/webhooks/pey" : "(define PUBLIC_URL)"} ${m.webhookVerified ? "· firma verificada" : "· SIN verificar firma"}`);
   if (m.testAmount) console.log(`   ⚠️  Modo prueba: todos los cobros reales serán de $${m.testAmount}`);
 });
