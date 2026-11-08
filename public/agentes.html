@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f6f1e7">
   <meta name="description" content="Conecta tu agente de IA a Cóbrale MCP y cobra con CoDi en México. Una integración sencilla sobre pey, con confirmación de pago en tiempo real.">
   <title>Cóbrale · CoDi para agentes</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💸</text></svg>">
+  <link rel="icon" href="/img/cobrale-icon.svg" type="image/svg+xml">
   <style>
     :root {
       color-scheme: light;
@@ -42,7 +42,7 @@
     .topbar { position: sticky; top: 0; z-index: 5; background: #f6f1e7ed; border-bottom: 1px solid #14213d12; backdrop-filter: blur(14px); }
     .topbar-inner { min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
     .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; }
-    .brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: var(--ink); color: white; font-size: 23px; box-shadow: 0 5px 14px #14213d24; }
+    .brand-mark { display: block; width: 42px; height: 42px; border-radius: 22%; box-shadow: 0 5px 14px #14213d24; }
     .brand-copy { display: grid; gap: 1px; }
     .brand-copy strong { font-family: Georgia, "Times New Roman", serif; font-size: 23px; font-style: italic; letter-spacing: -.5px; }
     .brand-copy small { color: var(--ink-2); font-size: 11px; }
@@ -148,7 +148,7 @@
     .footer { padding: 30px 0; background: var(--navy); color: #e6eaf2; }
     .footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
     .footer-brand { display: flex; align-items: center; gap: 10px; font-family: Georgia, "Times New Roman", serif; font-size: 20px; font-style: italic; font-weight: 700; text-decoration: none; }
-    .footer-brand span { font-family: system-ui, sans-serif; font-style: normal; }
+    .footer-brand img { display: block; width: 30px; height: 30px; }
     .footer-links { display: flex; flex-wrap: wrap; gap: 19px; color: #c4cbda; font-size: 12px; }
     .footer-links a { text-decoration: none; }
     .footer-links a:hover { color: white; }
@@ -223,7 +223,7 @@
   <header class="topbar">
     <div class="wrap topbar-inner">
       <a class="brand" href="/" aria-label="Cóbrale, ir a la Libreta">
-        <span class="brand-mark" aria-hidden="true">💸</span>
+        <img class="brand-mark" src="/img/cobrale-icon.svg" width="42" height="42" alt="">
         <span class="brand-copy"><strong>Cóbrale</strong><small>CoDi para agentes</small></span>
       </a>
       <nav class="nav" aria-label="Navegación principal">
@@ -428,7 +428,7 @@ tool_timeout_sec = 300<span id="codex-auth-line"></span></code></pre>
 
   <footer class="footer">
     <div class="wrap footer-inner">
-      <a class="footer-brand" href="/" aria-label="Cóbrale, ir a la Libreta"><span aria-hidden="true">💸</span> Cóbrale</a>
+      <a class="footer-brand" href="/" aria-label="Cóbrale, ir a la Libreta"><img src="/img/cobrale-icon.svg" width="30" height="30" alt=""> Cóbrale</a>
       <nav class="footer-links" aria-label="Enlaces del proyecto">
         <a href="https://github.com/ddzendreros/cobrale-mcp" target="_blank" rel="noopener noreferrer">Ver el repo en GitHub ↗</a>
         <a href="/">Abrir Libreta</a>

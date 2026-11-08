@@ -32,7 +32,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 0 20px 80px; }
 /* ---------- Header ---------- */
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 1120px; margin: 0 auto; padding: 20px 20px 8px; flex-wrap: wrap; }
 .brand { display: flex; gap: 12px; align-items: center; }
-.logo { font-size: 38px; filter: drop-shadow(0 4px 6px #0002); }
+.logo { display: block; flex: none; width: auto; height: 38px; }
 .brand h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 30px; letter-spacing: -.5px; }
 .store { margin: 0; color: var(--ink-2); font-size: 14px; cursor: pointer; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -306,7 +306,7 @@ textarea.msg { width: 100%; min-height: 150px; border: 0; border-radius: 14px; b
   main { padding-right: 14px; padding-left: 14px; }
   .top { padding: 16px 14px 8px; }
   .brand { gap: 8px; }
-  .logo { font-size: 34px; }
+  .logo { height: 34px; }
   .brand h1 { font-size: 28px; }
   .chips { gap: 6px; }
   .chip { padding-right: 8px; padding-left: 8px; font-size: 11px; }
