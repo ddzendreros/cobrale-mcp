@@ -12,7 +12,8 @@
     "pey:tx": "node scripts/pey-tx.js",
     "agente": "node examples/agente-empresa/agente.js"
   },
-  "license": "MIT",
+  "license": "UNLICENSED",
+  "private": true,
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
     "dotenv": "^18.0.9",

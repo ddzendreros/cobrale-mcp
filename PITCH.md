@@ -25,7 +25,7 @@ Codex llama `cobrar_a_celular` → me llega la solicitud en el banco → la acep
 "Mismo servidor, otro agente. Un webhook de pey, todos los agentes enterados."
 
 **2:40 · Cierre (20 s)**
-"Cualquier agente en México ya puede cobrar sin efectivo y sin comisión: la tiendita por voz y las empresas en cinco líneas de configuración. Open source, sobre pey y CoDi. Esto es Cóbrale."
+"Cualquier agente en México ya puede cobrar sin efectivo y sin comisión: la tiendita por voz y las empresas en cinco líneas de configuración. Sobre pey y CoDi. Esto es Cóbrale."
 
 ## Checklist 30 min antes
 - [ ] Railway arriba: logs con `pey: EN VIVO`, `firma verificada` y `PEY_TEST_AMOUNT=0.01`.
@@ -57,4 +57,4 @@ Codex llama `cobrar_a_celular` → me llega la solicitud en el banco → la acep
 - **¿Qué sigue?** Bot de WhatsApp para el tendero, multi-negocio (una key de pey por comercio) e historial de pagos como evidencia para microcrédito.
 
 ## Texto para el envío
-**Cóbrale — pagos CoDi para agentes.** Servidor MCP open source sobre pey: cualquier agente de IA (Codex, ChatGPT o el de tu empresa) puede cobrar con CoDi por QR, solicitud al celular o link, cancelar un cobro y *esperar* el pago, porque convertimos los webhooks de pey en una herramienta. Lo probamos con Libreta: la libreta del fiado de la tiendita se digitaliza con una foto o por voz (Claude) y cada cuenta se cobra con CoDi y se marca pagada en tiempo real; los cobros de los agentes aparecen en vivo en la misma pantalla. Está en vivo y cobra de verdad: escanea el QR con tu app bancaria y paga $0.01. Cero comisiones, cero efectivo.
+**Cóbrale — pagos CoDi para agentes.** Servidor MCP sobre pey: cualquier agente de IA (Codex, ChatGPT o el de tu empresa) puede cobrar con CoDi por QR, solicitud al celular o link, cancelar un cobro y *esperar* el pago, porque convertimos los webhooks de pey en una herramienta. Lo probamos con Libreta: la libreta del fiado de la tiendita se digitaliza con una foto o por voz (Claude) y cada cuenta se cobra con CoDi y se marca pagada en tiempo real; los cobros de los agentes aparecen en vivo en la misma pantalla. Está en vivo y cobra de verdad: escanea el QR con tu app bancaria y paga $0.01. Cero comisiones, cero efectivo.

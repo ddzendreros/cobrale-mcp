@@ -13,7 +13,7 @@ y se entera en segundos cuando le pagan. Sin comisión y sin efectivo.
 ![pey](https://img.shields.io/badge/API-pey-F59E0B)
 ![Claude](https://img.shields.io/badge/IA-Claude%20Opus%205.5-D97757)
 ![OpenAI](https://img.shields.io/badge/OpenAI-Responses%20API-412991)
-![Licencia](https://img.shields.io/badge/licencia-MIT-2563EB)
+![Licencia](https://img.shields.io/badge/licencia-propietaria-6B7280)
 
 <br/>
 
@@ -290,4 +290,4 @@ Hecho en la Ciudad de México para el **DevDay Exchange Community Hackathon 2026
 
 Construido sobre [pey](https://docs.pey.mx), CoDi de Banco de México, Claude de Anthropic, la API de OpenAI y el [SDK de Model Context Protocol](https://github.com/modelcontextprotocol/typescript-sdk).
 
-Licencia MIT.
+© 2026 Diego Zendreros. Todos los derechos reservados. El código se publica solo para su evaluación en el hackathon; no se concede licencia de uso, copia, modificación ni distribución. Ver [LICENSE](LICENSE).

@@ -30,7 +30,7 @@ Regreso a Libreta → pestaña **Agentes 🤖**: ahí está el cobro del agente,
 "Mismo servidor, otro agente. Un webhook de pey, todos los agentes enterados."
 
 **2:40 · Cierre (20 s)**
-"Cualquier agente en México ya puede cobrar sin efectivo y sin comisión: la tiendita por voz y las empresas en cinco líneas de configuración. Open source, sobre pey y CoDi. Esto es Cóbrale."
+"Cualquier agente en México ya puede cobrar sin efectivo y sin comisión: la tiendita por voz y las empresas en cinco líneas de configuración. Sobre pey y CoDi. Esto es Cóbrale."
 
 ## Checklist 30 min antes
 
